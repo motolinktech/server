@@ -44,6 +44,19 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+model HistoryTrace {
+  id         String   @id @default(uuid(7))
+  userId     String
+  user       Json
+  action     String
+  entityType String
+  entityId   String
+  changes    Json
+  createdAt  DateTime @default(now())
+
+  @@map("history_traces")
+}
+
 model Branch {
   id        String   @id @default(uuid(7))
   name      String

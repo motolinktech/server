@@ -22,7 +22,11 @@ export const usersRoutes = new Elysia({
         {
           body: t.Omit(UserMutateSchema, ["id"]),
           response: {
-            200: t.Omit(User, ["password", "verificationTokens"]),
+            200: t.Omit(User, [
+              "password",
+              "verificationTokens",
+              "historyTraces",
+            ]),
           },
           branchCheck: true,
         },
@@ -53,13 +57,21 @@ export const usersRoutes = new Elysia({
       )
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
-          200: t.Omit(User, ["password", "verificationTokens"]),
+          200: t.Omit(User, [
+            "password",
+            "verificationTokens",
+            "historyTraces",
+          ]),
         },
         branchCheck: true,
       })
       .get("/me", ({ user }) => service.getById(user.id), {
         response: {
-          200: t.Omit(User, ["password", "verificationTokens"]),
+          200: t.Omit(User, [
+            "password",
+            "verificationTokens",
+            "historyTraces",
+          ]),
         },
       })
       .delete("/:id", ({ params }) => service.delete(params.id))
