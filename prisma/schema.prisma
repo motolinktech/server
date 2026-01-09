@@ -24,7 +24,7 @@ model User {
   image              String?
   role               String              @default("USER")
   permissions        String[]            @default([])
-  branchs            String[]            @default([])
+  branches           String[]            @default([])
   isDeleted          Boolean             @default(false)
   updatedAt          DateTime            @updatedAt
   createdAt          DateTime            @default(now())
@@ -42,4 +42,14 @@ model VerificationToken {
   createdAt DateTime @default(now())
 
   @@map("verification_tokens")
+}
+
+model Branch {
+  id        String   @id @default(uuid(7))
+  name      String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("branches")
 }

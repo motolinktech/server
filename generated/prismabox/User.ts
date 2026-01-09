@@ -14,7 +14,7 @@ export const UserPlain = t.Object(
     image: __nullable__(t.String()),
     role: t.String(),
     permissions: t.Array(t.String(), { additionalProperties: false }),
-    branchs: t.Array(t.String(), { additionalProperties: false }),
+    branches: t.Array(t.String(), { additionalProperties: false }),
     isDeleted: t.Boolean(),
     updatedAt: t.Date(),
     createdAt: t.Date(),
@@ -52,7 +52,7 @@ export const UserPlainInputCreate = t.Object(
     permissions: t.Optional(
       t.Array(t.String(), { additionalProperties: false }),
     ),
-    branchs: t.Optional(t.Array(t.String(), { additionalProperties: false })),
+    branches: t.Optional(t.Array(t.String(), { additionalProperties: false })),
     isDeleted: t.Optional(t.Boolean()),
   },
   { additionalProperties: false },
@@ -69,7 +69,7 @@ export const UserPlainInputUpdate = t.Object(
     permissions: t.Optional(
       t.Array(t.String(), { additionalProperties: false }),
     ),
-    branchs: t.Optional(t.Array(t.String(), { additionalProperties: false })),
+    branches: t.Optional(t.Array(t.String(), { additionalProperties: false })),
     isDeleted: t.Optional(t.Boolean()),
   },
   { additionalProperties: false },
@@ -146,7 +146,7 @@ export const UserWhere = t.Partial(
           image: t.String(),
           role: t.String(),
           permissions: t.Array(t.String(), { additionalProperties: false }),
-          branchs: t.Array(t.String(), { additionalProperties: false }),
+          branches: t.Array(t.String(), { additionalProperties: false }),
           isDeleted: t.Boolean(),
           updatedAt: t.Date(),
           createdAt: t.Date(),
@@ -197,7 +197,7 @@ export const UserWhereUnique = t.Recursive(
               image: t.String(),
               role: t.String(),
               permissions: t.Array(t.String(), { additionalProperties: false }),
-              branchs: t.Array(t.String(), { additionalProperties: false }),
+              branches: t.Array(t.String(), { additionalProperties: false }),
               isDeleted: t.Boolean(),
               updatedAt: t.Date(),
               createdAt: t.Date(),
@@ -222,7 +222,7 @@ export const UserSelect = t.Partial(
       image: t.Boolean(),
       role: t.Boolean(),
       permissions: t.Boolean(),
-      branchs: t.Boolean(),
+      branches: t.Boolean(),
       isDeleted: t.Boolean(),
       updatedAt: t.Boolean(),
       createdAt: t.Boolean(),
@@ -267,7 +267,7 @@ export const UserOrderBy = t.Partial(
       permissions: t.Union([t.Literal("asc"), t.Literal("desc")], {
         additionalProperties: false,
       }),
-      branchs: t.Union([t.Literal("asc"), t.Literal("desc")], {
+      branches: t.Union([t.Literal("asc"), t.Literal("desc")], {
         additionalProperties: false,
       }),
       isDeleted: t.Union([t.Literal("asc"), t.Literal("desc")], {

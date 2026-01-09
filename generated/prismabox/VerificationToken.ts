@@ -27,7 +27,7 @@ export const VerificationTokenRelations = t.Object(
         image: __nullable__(t.String()),
         role: t.String(),
         permissions: t.Array(t.String(), { additionalProperties: false }),
-        branchs: t.Array(t.String(), { additionalProperties: false }),
+        branches: t.Array(t.String(), { additionalProperties: false }),
         isDeleted: t.Boolean(),
         updatedAt: t.Date(),
         createdAt: t.Date(),

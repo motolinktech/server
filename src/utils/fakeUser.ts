@@ -9,5 +9,6 @@ export const fakeUsers = {
     role: userRolesEnum.ADMIN,
     status: statusEnum.ACTIVE,
     isDeleted: false,
+    branches: [] as string[],
   },
 };

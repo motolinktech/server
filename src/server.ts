@@ -18,11 +18,6 @@ const app = new Elysia()
       documentation: {
         components: {
           securitySchemes: {
-            cookieAuth: {
-              type: "apiKey",
-              in: "cookie",
-              name: "auth",
-            },
             bearerAuth: {
               type: "http",
               scheme: "bearer",
@@ -32,7 +27,7 @@ const app = new Elysia()
         },
         security: [
           {
-            cookieAuth: [],
+            bearerAuth: [],
           },
         ],
       },

@@ -91,7 +91,7 @@ export function usersService() {
             email: true,
             role: true,
             permissions: true,
-            branchs: true,
+            branches: true,
             status: true,
             verificationTokens: {
               select: {
@@ -151,7 +151,10 @@ export function usersService() {
       return updatedUser;
     },
 
-    async update(id: string, data: Partial<Omit<UserMutateDTO, "id">>) {
+    async update(
+      id: string,
+      data: Partial<Omit<UserMutateDTO, "id" | "password">>,
+    ) {
       const existingUser = await db.user.findUnique({
         where: { id },
       });
@@ -160,16 +163,10 @@ export function usersService() {
         throw new AppError("Usuário não encontrado.", 404);
       }
 
-      let hashedPassword = data.password;
-      if (data.password) {
-        hashedPassword = await hashService().hash(data.password);
-      }
-
       const updatedUser = await db.user.update({
         where: { id },
         data: {
           ...data,
-          password: hashedPassword,
         },
       });
 

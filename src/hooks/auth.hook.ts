@@ -1,54 +1,59 @@
 import bearer from "@elysiajs/bearer";
 import jwt from "@elysiajs/jwt";
 import Elysia, { t } from "elysia";
-import type { User } from "../../generated/prisma/client";
 import { usersService } from "../modules/users/users.service";
-import { AppError } from "../utils/appError";
+import { userRolesEnum } from "../shared/enums/userRoles.enum";
 import { fakeUsers } from "../utils/fakeUser";
 
-export const authHook = new Elysia({
-  name: "auth-hook",
-})
-  .state<{
-    user: Omit<User, "password" | "verificationTokens"> | null;
-  }>({
-    user: null,
-  })
+export const authPlugin = new Elysia({ name: "auth-plugin" })
   .use(
     jwt({
       secret: process.env.JWT_SECRET || "secret",
-      schema: t.Object({
-        id: t.String(),
-      }),
+      schema: t.Object({ id: t.String() }),
     }),
   )
   .use(bearer())
-  .guard({
-    beforeHandle: async ({ bearer, jwt, store }) => {
-      if (process.env.NODE_ENV === "development") {
-        const fakeUser = fakeUsers[bearer as keyof typeof fakeUsers];
+  .derive({ as: "global" }, async ({ bearer, jwt }) => {
+    if (!bearer) return { user: null };
 
-        if (!fakeUser) {
-          throw new AppError("Não autorizado", 401);
+    if (process.env.NODE_ENV === "development") {
+      const fakeUser = fakeUsers[bearer as keyof typeof fakeUsers];
+      if (fakeUser) return { user: fakeUser };
+    }
+
+    const payload = await jwt.verify(bearer);
+    if (!payload) return { user: null };
+
+    const user = await usersService().getById(payload.id);
+    return { user };
+  })
+  .macro({
+    isAuth: {
+      resolve: async ({ user, status }) => {
+        if (!user) return status(401, "Não autorizado");
+
+        return { user };
+      },
+    },
+    branchCheck: {
+      headers: t.Object({
+        "branch-id": t.String({
+          error: "Filial é obrigatória",
+        }),
+      }),
+      resolve: async ({ user, status, headers }) => {
+        const { "branch-id": currentBranch } = headers;
+
+        if (!user || !currentBranch) return status(401, "Não autorizado");
+
+        if (
+          user.role !== userRolesEnum.ADMIN &&
+          !user.branches.includes(currentBranch)
+        ) {
+          return status(403, "Não autorizado para esta filial");
         }
 
-        store.user = fakeUser as User;
-      }
-
-      const isValidToken = await jwt.verify(bearer);
-
-      if (!isValidToken) {
-        throw new AppError("Não autorizado", 401);
-      }
-
-      const user = await usersService().getById(isValidToken.id);
-
-      store.user = user;
+        return { user, currentBranch };
+      },
     },
-  })
-  .resolve(({ store }) => {
-    return {
-      user: store.user!,
-    };
-  })
-  .as("scoped");
+  });
