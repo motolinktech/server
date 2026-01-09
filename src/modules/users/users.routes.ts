@@ -20,7 +20,7 @@ export const usersRoutes = new Elysia({
         ({ body, currentBranch }) =>
           service.create({ ...body, branches: [currentBranch] }),
         {
-          body: UserMutateSchema,
+          body: t.Omit(UserMutateSchema, ["id"]),
           response: {
             200: t.Omit(User, ["password", "verificationTokens"]),
           },

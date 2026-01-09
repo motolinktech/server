@@ -28,7 +28,7 @@ export const UserMutateSchema = t.Object({
       error: "Tipo de usuário inválida.",
     },
   ),
-  branches: t.Optional(t.Array(t.String())),
+  branches: t.Optional(t.Array(t.String({ format: "uuid" }))),
   permissions: t.Optional(t.Array(t.String())),
 });
 

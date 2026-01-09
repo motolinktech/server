@@ -1,4 +1,3 @@
-import bearer from "@elysiajs/bearer";
 import jwt from "@elysiajs/jwt";
 import Elysia, { t } from "elysia";
 import { User } from "../../../generated/prismabox/User";
@@ -13,17 +12,20 @@ export const authRoutes = new Elysia({
     tags: ["Auth"],
   },
 })
-  .use(jwt({ secret: process.env.JWT_SECRET || "secret" }))
-  .use(bearer())
-  .get(
+  .use(
+    jwt({
+      secret: process.env.JWT_SECRET || "secret",
+      schema: t.Object({ id: t.String() }),
+    }),
+  )
+  .post(
     "/authenticate",
     async ({ jwt, body, status }) => {
       const user = await service.authenticate(body);
 
       const token = await jwt.sign({
-        sub: user.id,
-        email: user.email,
-        exp: 60 * 60 * 24 * 7,
+        id: user.id,
+        exp: "7d",
       });
 
       return status(200, {
@@ -35,7 +37,7 @@ export const authRoutes = new Elysia({
       body: AuthSchema,
       response: {
         200: t.Object({
-          user: t.Omit(User, ["password"]),
+          user: t.Omit(User, ["password", "verificationTokens"]),
           token: t.String(),
         }),
       },
