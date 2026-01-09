@@ -15,33 +15,42 @@ export const usersRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true }, (app) =>
     app
-      .post("/", ({ body }) => service.create(body), {
-        body: UserMutateSchema,
-        response: {
-          200: t.Omit(User, ["password", "verificationTokens"]),
+      .post(
+        "/",
+        ({ body, currentBranch }) =>
+          service.create({ ...body, branches: [currentBranch] }),
+        {
+          body: UserMutateSchema,
+          response: {
+            200: t.Omit(User, ["password", "verificationTokens"]),
+          },
+          branchCheck: true,
         },
-        branchCheck: true,
-      })
-      .get("/", ({ query }) => service.list(query), {
-        response: {
-          200: t.Object({
-            data: t.Array(
-              t.Object({
-                id: t.String(),
-                name: t.String(),
-                email: t.String(),
-                role: t.String(),
-                status: t.String(),
-                permissions: t.Array(t.String()),
-                branches: t.Array(t.String()),
-                verificationTokens: t.Array(t.Object({ token: t.String() })),
-              }),
-            ),
-            count: t.Number(),
-          }),
+      )
+      .get(
+        "/",
+        ({ query, currentBranch }) => service.list({ ...query, currentBranch }),
+        {
+          response: {
+            200: t.Object({
+              data: t.Array(
+                t.Object({
+                  id: t.String(),
+                  name: t.String(),
+                  email: t.String(),
+                  role: t.String(),
+                  status: t.String(),
+                  permissions: t.Array(t.String()),
+                  branches: t.Array(t.String()),
+                  verificationTokens: t.Array(t.Object({ token: t.String() })),
+                }),
+              ),
+              count: t.Number(),
+            }),
+          },
+          branchCheck: true,
         },
-        branchCheck: true,
-      })
+      )
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
           200: t.Omit(User, ["password", "verificationTokens"]),

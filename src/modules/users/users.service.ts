@@ -64,8 +64,13 @@ export function usersService() {
       return user;
     },
 
-    async list(input: { page?: number; limit?: number; search?: string }) {
-      const { page = 1, limit = PAGE_SIZE, search } = input;
+    async list(input: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      currentBranch?: string;
+    }) {
+      const { page = 1, limit = PAGE_SIZE, search, currentBranch } = input;
 
       const where: Prisma.UserWhereInput = search
         ? {
@@ -73,6 +78,7 @@ export function usersService() {
               { name: { contains: search, mode: "insensitive" } },
               { email: { contains: search, mode: "insensitive" } },
             ],
+            branches: { has: currentBranch },
             isDeleted: false,
           }
         : {};
