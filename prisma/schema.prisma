@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName   = "t"
+  inputModel                  = true
+  output                      = "../generated/prismabox"
+}
+
+model User {
+  id          String   @id @default(uuid(7))
+  name        String
+  email       String   @unique
+  password    String?
+  status      String   @default("PENDING")
+  image       String?
+  role        String   @default("USER")
+  permissions String[] @default([])
+  branchs     String[] @default([])
+  isDeleted   Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("users")
+}
