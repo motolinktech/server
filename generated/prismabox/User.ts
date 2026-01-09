@@ -22,7 +22,24 @@ export const UserPlain = t.Object(
   { additionalProperties: false },
 );
 
-export const UserRelations = t.Object({}, { additionalProperties: false });
+export const UserRelations = t.Object(
+  {
+    verificationTokens: t.Array(
+      t.Object(
+        {
+          id: t.String(),
+          token: t.String(),
+          userId: t.String(),
+          expiresAt: t.Date(),
+          createdAt: t.Date(),
+        },
+        { additionalProperties: false },
+      ),
+      { additionalProperties: false },
+    ),
+  },
+  { additionalProperties: false },
+);
 
 export const UserPlainInputCreate = t.Object(
   {
@@ -59,12 +76,58 @@ export const UserPlainInputUpdate = t.Object(
 );
 
 export const UserRelationsInputCreate = t.Object(
-  {},
+  {
+    verificationTokens: t.Optional(
+      t.Object(
+        {
+          connect: t.Array(
+            t.Object(
+              {
+                id: t.String({ additionalProperties: false }),
+              },
+              { additionalProperties: false },
+            ),
+            { additionalProperties: false },
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+  },
   { additionalProperties: false },
 );
 
 export const UserRelationsInputUpdate = t.Partial(
-  t.Object({}, { additionalProperties: false }),
+  t.Object(
+    {
+      verificationTokens: t.Partial(
+        t.Object(
+          {
+            connect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+            disconnect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+          },
+          { additionalProperties: false },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  ),
 );
 
 export const UserWhere = t.Partial(
@@ -163,6 +226,7 @@ export const UserSelect = t.Partial(
       isDeleted: t.Boolean(),
       updatedAt: t.Boolean(),
       createdAt: t.Boolean(),
+      verificationTokens: t.Boolean(),
       _count: t.Boolean(),
     },
     { additionalProperties: false },
@@ -170,7 +234,10 @@ export const UserSelect = t.Partial(
 );
 
 export const UserInclude = t.Partial(
-  t.Object({ _count: t.Boolean() }, { additionalProperties: false }),
+  t.Object(
+    { verificationTokens: t.Boolean(), _count: t.Boolean() },
+    { additionalProperties: false },
+  ),
 );
 
 export const UserOrderBy = t.Partial(

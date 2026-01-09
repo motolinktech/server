@@ -1,7 +1,8 @@
 import bearer from "@elysiajs/bearer";
 import jwt from "@elysiajs/jwt";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import type { User } from "../../generated/prisma/client";
+import { usersService } from "../modules/users/users.service";
 import { AppError } from "../utils/appError";
 import { fakeUsers } from "../utils/fakeUser";
 
@@ -9,11 +10,18 @@ export const authHook = new Elysia({
   name: "auth-hook",
 })
   .state<{
-    user: User | null;
+    user: Omit<User, "password" | "verificationTokens"> | null;
   }>({
     user: null,
   })
-  .use(jwt({ secret: process.env.JWT_SECRET || "secret" }))
+  .use(
+    jwt({
+      secret: process.env.JWT_SECRET || "secret",
+      schema: t.Object({
+        id: t.String(),
+      }),
+    }),
+  )
   .use(bearer())
   .guard({
     beforeHandle: async ({ bearer, jwt, store }) => {
@@ -33,9 +41,9 @@ export const authHook = new Elysia({
         throw new AppError("Não autorizado", 401);
       }
 
-      // TODO: add function to get user from DB
+      const user = await usersService().getById(isValidToken.id);
 
-      store.user = isValidToken as User;
+      store.user = user;
     },
   })
   .resolve(({ store }) => {
