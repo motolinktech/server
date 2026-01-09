@@ -2,7 +2,10 @@
   "name": "server",
   "version": "1.0.50",
   "scripts": {
-    "dev": "bun run --watch src/server.ts"
+    "dev": "bun run --watch src/server.ts",
+    "lint": "biome check --write src",
+    "format": "biome format --write src",
+    "check": "biome check src"
   },
   "dependencies": {
     "@elysiajs/bearer": "^1.4.2",

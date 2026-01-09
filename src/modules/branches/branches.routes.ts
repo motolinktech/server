@@ -7,6 +7,8 @@ import { branchesService } from "./branches.service";
 
 const service = branchesService();
 
+const responseBranch = t.Omit(Branch, ["regions", "groups"]);
+
 export const branchesRoutes = new Elysia({
   prefix: "/branches",
   detail: {
@@ -19,7 +21,7 @@ export const branchesRoutes = new Elysia({
       .get("/", ({ query }) => service.list(query), {
         response: {
           200: t.Object({
-            data: t.Array(Branch),
+            data: t.Array(responseBranch),
             count: t.Number(),
           }),
         },
@@ -31,13 +33,13 @@ export const branchesRoutes = new Elysia({
       })
       .post("/", ({ body }) => service.create(body), {
         body: BranchMutateSchema,
-        response: { 200: Branch },
+        response: { 200: responseBranch },
       })
       .get("/:id", ({ params }) => service.getById(params.id), {
-        response: { 200: Branch },
+        response: { 200: responseBranch },
       })
       .put("/:id", ({ params, body }) => service.update(params.id, body), {
         body: BranchMutateSchema,
-        response: { 200: Branch },
+        response: { 200: responseBranch },
       }),
   );
