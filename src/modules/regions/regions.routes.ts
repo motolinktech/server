@@ -6,6 +6,8 @@ import { regionsService } from "./regions.service";
 
 const service = regionsService();
 
+const RegionReponse = t.Omit(Region, ["branch", "deliverymen"]);
+
 export const regionsRoutes = new Elysia({
   prefix: "/regions",
   detail: {
@@ -22,7 +24,7 @@ export const regionsRoutes = new Elysia({
         {
           body: t.Omit(RegionsMutateSchema, ["id", "branchId"]),
           response: {
-            200: t.Omit(Region, ["branch"]),
+            200: RegionReponse,
           },
           branchCheck: true,
         },
@@ -35,7 +37,7 @@ export const regionsRoutes = new Elysia({
           query: ListRegionsSchema,
           response: {
             200: t.Object({
-              data: t.Array(t.Omit(Region, ["branch"])),
+              data: t.Array(RegionReponse),
               count: t.Number(),
             }),
           },
@@ -44,7 +46,7 @@ export const regionsRoutes = new Elysia({
       )
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
-          200: t.Omit(Region, ["branch"]),
+          200: RegionReponse,
         },
         branchCheck: true,
       })
@@ -54,7 +56,7 @@ export const regionsRoutes = new Elysia({
         {
           body: t.Omit(RegionsMutateSchema, ["id", "branchId"]),
           response: {
-            200: t.Omit(Region, ["branch"]),
+            200: RegionReponse,
           },
           branchCheck: true,
         },

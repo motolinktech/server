@@ -58,13 +58,14 @@ model HistoryTrace {
 }
 
 model Branch {
-  id        String   @id @default(uuid(7))
-  name      String
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  groups    Group[]
-  regions   Region[]
+  id          String        @id @default(uuid(7))
+  name        String
+  address     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  groups      Group[]
+  regions     Region[]
+  deliverymen Deliveryman[]
 
   @@map("branches")
 }
@@ -82,13 +83,40 @@ model Group {
 }
 
 model Region {
-  id          String   @id @default(uuid(7))
+  id          String        @id @default(uuid(7))
   name        String
   description String?
   branchId    String
-  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  branch      Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime      @default(now())
+  deliverymen Deliveryman[]
 
   @@map("regions")
+}
+
+model Deliveryman {
+  id           String   @id @default(uuid(7))
+  name         String
+  document     String
+  phone        String
+  contractType String
+  mainPixKey   String
+  secondPixKey String?
+  thridPixKey  String?
+  agency       String?
+  account      String?
+  vehicleModel String?
+  vehiclePlate String?
+  vehicleColor String?
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  regionId     String?
+  region       Region?  @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  isDeleted    Boolean  @default(false)
+  isBlocked    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@map("deliverymen")
 }

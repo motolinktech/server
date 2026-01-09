@@ -1,5 +1,6 @@
 import Elysia from "elysia";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { deliverymenRoutes } from "./modules/deliverymen/deliverymen.routes";
 import { groupsRoutes } from "./modules/groups/groups.routes";
 import { historyTracesRoutes } from "./modules/historyTraces/historyTraces.routes";
 import { regionsRoutes } from "./modules/regions/regions.routes";
@@ -10,4 +11,5 @@ export const routes = new Elysia({ prefix: "/api" })
   .use(usersRoutes)
   .use(groupsRoutes)
   .use(regionsRoutes)
-  .use(historyTracesRoutes);
+  .use(historyTracesRoutes)
+  .use(deliverymenRoutes);
