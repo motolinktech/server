@@ -63,6 +63,19 @@ model Branch {
   address   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  groups    Group[]
 
   @@map("branches")
+}
+
+model Group {
+  id          String   @id @default(uuid(7))
+  name        String
+  description String?
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("groups")
 }
