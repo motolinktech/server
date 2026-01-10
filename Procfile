@@ -1,2 +1,2 @@
-release: bunx prisma migrate deploy && bunx prisma generate && bun run build
+release: bun prisma migrate deploy && bun prisma generate && bun run build
 web: ./server
