@@ -15,6 +15,7 @@ const ClientResponse = t.Omit(Client, [
   "region",
   "group",
   "commercialCondition",
+  "workShiftSlots",
 ]);
 
 export const clientsRoutes = new Elysia({

@@ -9,7 +9,11 @@ import { deliverymenService } from "./deliverymen.service";
 
 const service = deliverymenService();
 
-const DeliverymanReponse = t.Omit(Deliveryman, ["branch", "region"]);
+const DeliverymanReponse = t.Omit(Deliveryman, [
+  "branch",
+  "region",
+  "workShiftSlots",
+]);
 
 export const deliverymenRoutes = new Elysia({
   prefix: "/deliverymen",
@@ -64,7 +68,7 @@ export const deliverymenRoutes = new Elysia({
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
           200: t.Composite([
-            Deliveryman,
+            DeliverymanReponse,
             t.Object({
               branch: t.Any(),
               region: t.Nullable(t.Any()),

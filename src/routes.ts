@@ -6,6 +6,7 @@ import { groupsRoutes } from "./modules/groups/groups.routes";
 import { historyTracesRoutes } from "./modules/historyTraces/historyTraces.routes";
 import { regionsRoutes } from "./modules/regions/regions.routes";
 import { usersRoutes } from "./modules/users/users.routes";
+import { workShiftSlotsRoutes } from "./modules/workShiftSlots/workShiftSlots.routes";
 
 export const routes = new Elysia({ prefix: "/api" })
   .use(authRoutes)
@@ -14,4 +15,5 @@ export const routes = new Elysia({ prefix: "/api" })
   .use(regionsRoutes)
   .use(historyTracesRoutes)
   .use(deliverymenRoutes)
-  .use(clientsRoutes);
+  .use(clientsRoutes)
+  .use(workShiftSlotsRoutes);
