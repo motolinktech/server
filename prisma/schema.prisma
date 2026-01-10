@@ -66,6 +66,7 @@ model Branch {
   groups      Group[]
   regions     Region[]
   deliverymen Deliveryman[]
+  clients     Client[]
 
   @@map("branches")
 }
@@ -78,6 +79,7 @@ model Group {
   branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
+  clients     Client[]
 
   @@map("groups")
 }
@@ -91,6 +93,7 @@ model Region {
   updatedAt   DateTime      @updatedAt
   createdAt   DateTime      @default(now())
   deliverymen Deliveryman[]
+  clients     Client[]
 
   @@map("regions")
 }
@@ -119,4 +122,60 @@ model Deliveryman {
   createdAt    DateTime @default(now())
 
   @@map("deliverymen")
+}
+
+model Client {
+  id                  String               @id @default(uuid(7))
+  name                String
+  cnpj                String
+  cep                 String
+  street              String
+  number              String
+  complement          String
+  city                String
+  neighborhood        String
+  uf                  String
+  regionId            String?
+  region              Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  groupId             String?
+  group               Group?               @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  contactName         String
+  branchId            String
+  branch              Branch               @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  isDeleted           Boolean              @default(false)
+  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime             @default(now())
+  commercialCondition CommercialCondition?
+
+  @@map("clients")
+}
+
+model CommercialCondition {
+  id                        String   @id @default(uuid(7))
+  clientId                  String   @unique
+  client                    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  paymentForm               String[] @default([])
+  paymentTermDays           Int      @default(0)
+  deliveryAreaKm            Float    @default(0)
+  isMotolinkCovered         Boolean  @default(false)
+  guaranteedDay             Int      @default(0)
+  guaranteedDayWeekend      Int      @default(0)
+  guaranteedNight           Int      @default(0)
+  guaranteedNightWeekend    Int      @default(0)
+  clientDailyDay            Decimal  @default(0) @db.Decimal(16, 2)
+  clientDailyDayWknd        Decimal  @default(0) @db.Decimal(16, 2)
+  clientDailyNight          Decimal  @default(0) @db.Decimal(16, 2)
+  clientDailyNightWknd      Decimal  @default(0) @db.Decimal(16, 2)
+  clientPerDelivery         Decimal  @default(0) @db.Decimal(16, 2)
+  clientAdditionalKm        Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanDailyDay       Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanDailyDayWknd   Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanDailyNight     Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanDailyNightWknd Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanPerDelivery    Decimal  @default(0) @db.Decimal(16, 2)
+  deliverymanAdditionalKm   Decimal  @default(0) @db.Decimal(16, 2)
+  updatedAt                 DateTime @updatedAt
+  createdAt                 DateTime @default(now())
+
+  @@map("commercial_conditions")
 }
