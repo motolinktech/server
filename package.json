@@ -6,7 +6,7 @@
     "lint": "biome check --write src",
     "format": "biome format --write src",
     "start": "bun run server",
-    "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server src/server.ts",
+    "build": "bun prisma generate && bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server src/server.ts",
     "check": "biome check src"
   },
   "dependencies": {
