@@ -99,29 +99,30 @@ model Region {
 }
 
 model Deliveryman {
-  id             String          @id @default(uuid(7))
-  name           String
-  document       String
-  phone          String
-  contractType   String
-  mainPixKey     String
-  secondPixKey   String?
-  thridPixKey    String?
-  agency         String?
-  account        String?
-  vehicleModel   String?
-  vehiclePlate   String?
-  vehicleColor   String?
-  branchId       String
-  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  regionId       String?
-  region         Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  isDeleted      Boolean         @default(false)
-  isBlocked      Boolean         @default(false)
-  updatedAt      DateTime        @updatedAt
-  createdAt      DateTime        @default(now())
-  workShiftSlots WorkShiftSlot[]
-  blocks         ClientBlock[]
+  id              String           @id @default(uuid(7))
+  name            String
+  document        String
+  phone           String
+  contractType    String
+  mainPixKey      String
+  secondPixKey    String?
+  thridPixKey     String?
+  agency          String?
+  account         String?
+  vehicleModel    String?
+  vehiclePlate    String?
+  vehicleColor    String?
+  branchId        String
+  branch          Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  regionId        String?
+  region          Region?          @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  isDeleted       Boolean          @default(false)
+  isBlocked       Boolean          @default(false)
+  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now())
+  workShiftSlots  WorkShiftSlot[]
+  blocks          ClientBlock[]
+  paymentRequests PaymentRequest[]
 
   @@map("deliverymen")
 }
@@ -198,20 +199,36 @@ model ClientBlock {
 }
 
 model WorkShiftSlot {
-  id            String       @id @default(uuid(7))
-  deliverymanId String?
-  deliveryman   Deliveryman? @relation(fields: [deliverymanId], references: [id], onDelete: SetNull)
-  clientId      String
-  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  status        String
-  contractType  String
-  shiftDate     DateTime
-  startTime     DateTime
-  endTime       DateTime
-  auditStatus   String
-  logs          Json[]
-  updatedAt     DateTime     @updatedAt
-  createdAt     DateTime     @default(now())
+  id              String           @id @default(uuid(7))
+  deliverymanId   String?
+  deliveryman     Deliveryman?     @relation(fields: [deliverymanId], references: [id], onDelete: SetNull)
+  clientId        String
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status          String
+  contractType    String
+  shiftDate       DateTime
+  startTime       DateTime
+  endTime         DateTime
+  auditStatus     String
+  logs            Json[]
+  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now())
+  paymentRequests PaymentRequest[]
 
   @@map("work_shift_slots")
+}
+
+model PaymentRequest {
+  id              String        @id @default(uuid(7))
+  workShiftSlotId String
+  workShiftSlot   WorkShiftSlot @relation(fields: [workShiftSlotId], references: [id], onDelete: Cascade)
+  deliverymanId   String
+  deliveryman     Deliveryman   @relation(fields: [deliverymanId], references: [id], onDelete: Restrict)
+  amount          Decimal       @db.Decimal(16, 2)
+  status          String        @default("NEW")
+  logs            Json[]        @default([])
+  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime      @default(now())
+
+  @@map("payment_requests")
 }
