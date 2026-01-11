@@ -13,6 +13,7 @@ const DeliverymanReponse = t.Omit(Deliveryman, [
   "branch",
   "region",
   "workShiftSlots",
+  "blocks",
 ]);
 
 export const deliverymenRoutes = new Elysia({

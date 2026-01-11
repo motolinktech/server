@@ -121,6 +121,7 @@ model Deliveryman {
   updatedAt      DateTime        @updatedAt
   createdAt      DateTime        @default(now())
   workShiftSlots WorkShiftSlot[]
+  blocks         ClientBlock[]
 
   @@map("deliverymen")
 }
@@ -148,6 +149,7 @@ model Client {
   createdAt           DateTime             @default(now())
   commercialCondition CommercialCondition?
   workShiftSlots      WorkShiftSlot[]
+  blocks              ClientBlock[]
 
   @@map("clients")
 }
@@ -180,6 +182,19 @@ model CommercialCondition {
   createdAt                 DateTime @default(now())
 
   @@map("commercial_conditions")
+}
+
+model ClientBlock {
+  id            String      @id @default(uuid(7))
+  deliverymanId String
+  deliveryman   Deliveryman @relation(fields: [deliverymanId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  reason        String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([clientId, deliverymanId])
+  @@map("client_blocks")
 }
 
 model WorkShiftSlot {

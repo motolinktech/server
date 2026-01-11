@@ -1,6 +1,7 @@
 import Elysia, { t } from "elysia";
 import { Client } from "../../../generated/prismabox/Client";
 import { authPlugin } from "../../hooks/auth.hook";
+import { blocksRoutes } from "./blocks/blocks.routes";
 import {
   ClientMutateSchema,
   CommercialConditionSchema,
@@ -16,6 +17,7 @@ const ClientResponse = t.Omit(Client, [
   "group",
   "commercialCondition",
   "workShiftSlots",
+  "blocks",
 ]);
 
 export const clientsRoutes = new Elysia({
@@ -134,7 +136,7 @@ export const clientsRoutes = new Elysia({
           },
         },
       )
-      .get("/:id", ({ params }) => service.getById(params.id), {
+      .get("/:clientId", ({ params }) => service.getById(params.clientId), {
         response: {
           200: t.Composite([
             ClientResponse,
@@ -147,23 +149,28 @@ export const clientsRoutes = new Elysia({
           ]),
         },
       })
-      .put("/:id", ({ params, body }) => service.edit(params.id, body), {
-        body: t.Object({
-          client: t.Optional(t.Omit(ClientMutateSchema, ["id", "branchId"])),
-          commercialCondition: t.Optional(CommercialConditionSchema),
-        }),
-        response: {
-          200: t.Composite([
-            ClientResponse,
-            t.Object({
-              commercialCondition: t.Nullable(t.Any()),
-            }),
-          ]),
+      .put(
+        "/:clientId",
+        ({ params, body }) => service.edit(params.clientId, body),
+        {
+          body: t.Object({
+            client: t.Optional(t.Omit(ClientMutateSchema, ["id", "branchId"])),
+            commercialCondition: t.Optional(CommercialConditionSchema),
+          }),
+          response: {
+            200: t.Composite([
+              ClientResponse,
+              t.Object({
+                commercialCondition: t.Nullable(t.Any()),
+              }),
+            ]),
+          },
         },
-      })
-      .delete("/:id", ({ params }) => service.delete(params.id), {
+      )
+      .delete("/:clientId", ({ params }) => service.delete(params.clientId), {
         response: {
           200: ClientResponse,
         },
       }),
-  );
+  )
+  .use(blocksRoutes);
