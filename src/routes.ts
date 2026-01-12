@@ -1,5 +1,6 @@
 import Elysia from "elysia";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { branchesRoutes } from "./modules/branches/branches.routes";
 import { clientsRoutes } from "./modules/clients/clients.routes";
 import { deliverymenRoutes } from "./modules/deliverymen/deliverymen.routes";
 import { groupsRoutes } from "./modules/groups/groups.routes";
@@ -11,6 +12,7 @@ import { workShiftSlotsRoutes } from "./modules/workShiftSlots/workShiftSlots.ro
 
 export const routes = new Elysia({ prefix: "/api" })
   .use(authRoutes)
+  .use(branchesRoutes)
   .use(usersRoutes)
   .use(groupsRoutes)
   .use(regionsRoutes)

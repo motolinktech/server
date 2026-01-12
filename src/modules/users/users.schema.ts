@@ -1,7 +1,7 @@
 import { type Static, t } from "elysia";
+import { UserPlain } from "../../../generated/prismabox/User";
 import { userRolesArr } from "../../shared/enums/userRoles.enum";
 import { passwordRegex } from "../../utils/passwordRegex";
-import { UserPlain } from "../../../generated/prismabox/User";
 
 export const UserDocumentSchema = t.Object({
   url: t.String({
@@ -43,9 +43,11 @@ export const UserMutateSchema = t.Object({
   ),
   branches: t.Optional(t.Array(t.String({ format: "uuid" }))),
   permissions: t.Optional(t.Array(t.String())),
-  birthDate: t.Date({
-    error: "Data de nascimento inválida.",
-  }),
+  birthDate: t.Optional(
+    t.Date({
+      error: "Data de nascimento inválida.",
+    }),
+  ),
   documents: t.Optional(t.Array(UserDocumentSchema, { default: [] })),
 });
 

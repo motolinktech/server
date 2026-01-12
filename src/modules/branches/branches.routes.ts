@@ -7,7 +7,12 @@ import { branchesService } from "./branches.service";
 
 const service = branchesService();
 
-const responseBranch = t.Omit(Branch, ["regions", "groups", "deliverymen"]);
+const responseBranch = t.Omit(Branch, [
+  "regions",
+  "groups",
+  "deliverymen",
+  "clients",
+]);
 
 export const branchesRoutes = new Elysia({
   prefix: "/branches",
