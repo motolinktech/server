@@ -6,7 +6,7 @@ import { regionsService } from "./regions.service";
 
 const service = regionsService();
 
-const RegionReponse = t.Omit(Region, ["branch", "deliverymen"]);
+const RegionReponse = t.Omit(Region, ["branch", "deliverymen", "clients"]);
 
 export const regionsRoutes = new Elysia({
   prefix: "/regions",
@@ -22,7 +22,12 @@ export const regionsRoutes = new Elysia({
         ({ body, currentBranch }) =>
           service.create({ ...body, branchId: currentBranch }),
         {
-          body: t.Omit(RegionsMutateSchema, ["id", "branchId"]),
+          body: t.Omit(RegionsMutateSchema, [
+            "id",
+            "branchId",
+            "clients",
+            "deliverymen",
+          ]),
           response: {
             200: RegionReponse,
           },
