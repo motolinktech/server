@@ -19,7 +19,7 @@ export const authRoutes = new Elysia({
     }),
   )
   .post(
-    "/authenticate",
+    "/",
     async ({ jwt, body, status }) => {
       const user = await service.authenticate(body);
 
