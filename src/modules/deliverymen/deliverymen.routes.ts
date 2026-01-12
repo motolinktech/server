@@ -14,6 +14,7 @@ const DeliverymanReponse = t.Omit(Deliveryman, [
   "region",
   "workShiftSlots",
   "blocks",
+  "paymentRequests",
 ]);
 
 export const deliverymenRoutes = new Elysia({
@@ -30,7 +31,11 @@ export const deliverymenRoutes = new Elysia({
         ({ body, currentBranch }) =>
           service.create({ ...body, branchId: currentBranch }),
         {
-          body: t.Omit(DeliverymenMutateSchema, ["id", "branchId"]),
+          body: t.Omit(DeliverymenMutateSchema, [
+            "id",
+            "branchId",
+            "paymentRequests",
+          ]),
           response: {
             200: DeliverymanReponse,
           },
