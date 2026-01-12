@@ -8,7 +8,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 const adapter = new PrismaPg({
   connectionString,
-  ...(isProd && { ssl: { rejectUnauthorized: false } }),
+  ssl: isProd ? { rejectUnauthorized: false } : undefined,
 });
 const db = new PrismaClient({ adapter });
 
