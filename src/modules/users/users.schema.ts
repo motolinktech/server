@@ -52,9 +52,6 @@ export const UserMutateSchema = t.Object({
 });
 
 export const UserPasswordChangeSchema = t.Object({
-  id: t.String({
-    error: "ID do usuário é obrigatório",
-  }),
   password: t.String({
     minLength: 8,
     maxLength: 128,

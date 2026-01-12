@@ -81,10 +81,16 @@ export const usersRoutes = new Elysia({
       .delete("/:id", ({ params }) => service.delete(params.id))
       .post(
         "/:id/change-password",
-        ({ params, body }) =>
-          service.changePassword({ ...body, id: params.id }),
+        ({ params, body }) => {
+          return service.changePassword({ ...body, id: params.id });
+        },
         {
           body: UserPasswordChangeSchema,
+          params: t.Object({
+            id: t.String({
+              error: "ID do usuário é obrigatório",
+            }),
+          }),
         },
       ),
   );
