@@ -4,11 +4,52 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 import { hashService } from "../services/hash.service.js";
 
 const connectionString = `${process.env.DATABASE_URL}`;
+const isProd = process.env.NODE_ENV === "production";
 const adapter = new PrismaPg({
   connectionString,
-  ssl: { rejectUnauthorized: false },
+  ...(isProd && { ssl: { rejectUnauthorized: false } }),
 });
 const db = new PrismaClient({ adapter });
+
+async function createBranches() {
+  try {
+    console.log("Criando filiais padrão...");
+
+    const branchesData = [
+      {
+        name: "Rio de Janeiro",
+        code: "RJ",
+      },
+      {
+        name: "São Paulo",
+        code: "SP",
+      },
+      {
+        name: "Campinas",
+        code: "CAM",
+      },
+    ];
+
+    for (const branch of branchesData) {
+      const existingBranch = await db.branch.findUnique({
+        where: { code: branch.code },
+      });
+
+      if (existingBranch) {
+        console.log(`✅ Filial com nome ${existingBranch.name} já existe!`);
+        continue;
+      }
+
+      await db.branch.create({
+        data: { name: branch.name, code: branch.code },
+      });
+
+      console.log(`✅ Filial ${branch.name} criada com sucesso!`);
+    }
+  } catch (error) {
+    console.error("❌ Erro ao criar filiais:", error);
+  }
+}
 
 async function createUser() {
   try {
@@ -21,7 +62,7 @@ async function createUser() {
       console.error(
         "Use: ADMIN_EMAIL=email@example.com ADMIN_PASSWORD=senha bun run src/scripts/create-user.js",
       );
-      process.exit(1);
+      return;
     }
 
     console.log(`🔄 Verificando usuário com email: ${email}...`);
@@ -32,14 +73,15 @@ async function createUser() {
 
     if (existingUser) {
       console.log(`✅ Usuário com email ${email} já existe!`);
-      await db.$disconnect();
-      process.exit(0);
+      return;
     }
 
     console.log("⚙️  Criando novo usuário ADMIN...");
 
     const { hash } = hashService();
     const hashedPassword = await hash(password);
+
+    const branches = await db.branch.findMany();
 
     await db.user.create({
       data: {
@@ -49,20 +91,27 @@ async function createUser() {
         role: "ADMIN",
         status: "ACTIVE",
         permissions: [],
-        branches: [],
+        branches: branches.map((branch) => branch.id),
         documents: [],
       },
     });
 
     console.log("✅ Usuário ADMIN criado com sucesso!");
-
-    await db.$disconnect();
-    process.exit(0);
   } catch (error) {
     console.error("❌ Erro ao criar usuário:", error);
+  }
+}
+
+async function bootstrap() {
+  try {
+    await createBranches();
+    await createUser();
+    await db.$disconnect();
+  } catch (error) {
+    console.error("❌ Erro no bootstrap:", error);
     await db.$disconnect();
     process.exit(1);
   }
 }
 
-createUser();
+bootstrap();

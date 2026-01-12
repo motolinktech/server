@@ -62,6 +62,7 @@ model HistoryTrace {
 model Branch {
   id          String        @id @default(uuid(7))
   name        String
+  code        String        @unique
   address     String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

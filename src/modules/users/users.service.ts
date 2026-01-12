@@ -87,16 +87,18 @@ export function usersService() {
               { name: { contains: search, mode: "insensitive" } },
               { email: { contains: search, mode: "insensitive" } },
             ],
-            branches: { has: currentBranch },
-            isDeleted: false,
           }
         : {};
 
       const [users, count] = await db.$transaction([
         db.user.findMany({
-          take: limit,
-          skip: (page - 1) * limit,
-          where,
+          take: Number(limit),
+          skip: (page - 1) * Number(limit),
+          where: {
+            ...where,
+            branches: { has: currentBranch },
+            isDeleted: false,
+          },
           orderBy: {
             id: "asc",
           },
@@ -115,7 +117,12 @@ export function usersService() {
             },
           },
         }),
-        db.user.count({}),
+        db.user.count({
+          where: {
+            branches: { has: currentBranch },
+            isDeleted: false,
+          },
+        }),
       ]);
 
       return {
