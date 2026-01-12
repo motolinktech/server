@@ -1,7 +1,11 @@
 import Elysia, { t } from "elysia";
 import { User } from "../../../generated/prismabox/User";
 import { authPlugin } from "../../hooks/auth.hook";
-import { UserMutateSchema, UserPasswordChangeSchema } from "./users.schema";
+import {
+  UserDetailed,
+  UserMutateSchema,
+  UserPasswordChangeSchema,
+} from "./users.schema";
 import { usersService } from "./users.service";
 
 const service = usersService();
@@ -57,7 +61,7 @@ export const usersRoutes = new Elysia({
       )
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
-          200: t.Omit(User, [
+          200: t.Omit(UserDetailed, [
             "password",
             "verificationTokens",
             "historyTraces",

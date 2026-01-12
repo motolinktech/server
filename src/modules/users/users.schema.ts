@@ -1,6 +1,19 @@
 import { type Static, t } from "elysia";
 import { userRolesArr } from "../../shared/enums/userRoles.enum";
 import { passwordRegex } from "../../utils/passwordRegex";
+import { UserPlain } from "../../../generated/prismabox/User";
+
+export const UserDocumentSchema = t.Object({
+  url: t.String({
+    error: "URL do documento é obrigatória.",
+  }),
+  type: t.String({
+    error: "Tipo do documento é obrigatório.",
+  }),
+  uploadedAt: t.Date({
+    error: "Data de upload é obrigatória.",
+  }),
+});
 
 export const UserMutateSchema = t.Object({
   id: t.Optional(t.String()),
@@ -30,6 +43,10 @@ export const UserMutateSchema = t.Object({
   ),
   branches: t.Optional(t.Array(t.String({ format: "uuid" }))),
   permissions: t.Optional(t.Array(t.String())),
+  birthDate: t.Date({
+    error: "Data de nascimento inválida.",
+  }),
+  documents: t.Optional(t.Array(UserDocumentSchema, { default: [] })),
 });
 
 export const UserPasswordChangeSchema = t.Object({
@@ -51,5 +68,20 @@ export const UserPasswordChangeSchema = t.Object({
   }),
 });
 
+export const UserDetailedDocumentSchema = t.Object({
+  type: t.String(),
+  url: t.String(),
+  uploadedAt: t.Date(),
+});
+
+export const UserDetailed = t.Composite([
+  t.Omit(UserPlain, ["documents"]),
+  t.Object({
+    documents: t.Array(UserDetailedDocumentSchema),
+  }),
+]);
+
+export type UserDocumentDTO = Static<typeof UserDocumentSchema>;
 export type UserMutateDTO = Static<typeof UserMutateSchema>;
 export type UserPasswordChangeDTO = Static<typeof UserPasswordChangeSchema>;
+export type UserDetailedType = Static<typeof UserDetailed>;

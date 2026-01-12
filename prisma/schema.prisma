@@ -25,6 +25,8 @@ model User {
   role               String              @default("USER")
   permissions        String[]            @default([])
   branches           String[]            @default([])
+  birthDate          DateTime
+  documents          Json[]              @default([])
   isDeleted          Boolean             @default(false)
   updatedAt          DateTime            @updatedAt
   createdAt          DateTime            @default(now())

@@ -4,7 +4,11 @@ import { hashService } from "../../services/hash.service";
 import { statusEnum } from "../../shared/enums/status.enum";
 import { AppError } from "../../utils/appError";
 import { generateToken } from "../../utils/generateToken";
-import type { UserMutateDTO, UserPasswordChangeDTO } from "./users.schema";
+import type {
+  UserDetailedType,
+  UserMutateDTO,
+  UserPasswordChangeDTO,
+} from "./users.schema";
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
 
@@ -61,7 +65,7 @@ export function usersService() {
         throw new AppError("Usuário não encontrado.", 404);
       }
 
-      return user;
+      return user as unknown as UserDetailedType;
     },
 
     async list(input: {
