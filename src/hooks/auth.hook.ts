@@ -37,12 +37,12 @@ export const authPlugin = new Elysia({ name: "auth-plugin" })
     },
     branchCheck: {
       headers: t.Object({
-        "branch-id": t.String({
+        "X-Branch-Id": t.String({
           error: "Filial é obrigatória",
         }),
       }),
       resolve: async ({ user, status, headers }) => {
-        const { "branch-id": currentBranch } = headers;
+        const { "X-Branch-Id": currentBranch } = headers;
 
         if (!user || !currentBranch) return status(401, "Não autorizado");
 
