@@ -2,6 +2,7 @@ import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { hashService } from "../../services/hash.service";
 import { statusEnum } from "../../shared/enums/status.enum";
+import { userRolesEnum } from "../../shared/enums/userRoles.enum";
 import { AppError } from "../../utils/appError";
 import { generateToken } from "../../utils/generateToken";
 import type {
@@ -16,6 +17,10 @@ export function usersService() {
   return {
     async create(body: Omit<UserMutateDTO, "id">) {
       const data = { ...body, status: statusEnum.PENDING as string };
+
+      if (data.role === userRolesEnum.ADMIN) {
+        data.branches = [];
+      }
 
       if (data.password) {
         data.password = await hashService().hash(data.password);
