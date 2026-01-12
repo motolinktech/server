@@ -4,11 +4,15 @@ import openapi from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import { routes } from "./routes";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const app = new Elysia()
   .use(
     cors({
+      origin: isProd
+        ? "https://webapp-motolink-d9a92e605d18.herokuapp.com"
+        : true,
       credentials: true,
-      origin: true,
     }),
   )
   .use(bearer())
