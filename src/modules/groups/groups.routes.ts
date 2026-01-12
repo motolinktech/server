@@ -20,9 +20,9 @@ export const groupsRoutes = new Elysia({
         ({ body, currentBranch }) =>
           service.create({ ...body, branchId: currentBranch }),
         {
-          body: t.Omit(GroupsMutateSchema, ["id", "branchId"]),
+          body: t.Omit(GroupsMutateSchema, ["id", "branchId", "clients"]),
           response: {
-            200: t.Omit(Group, ["branch"]),
+            200: t.Omit(Group, ["branch", "clients"]),
           },
           branchCheck: true,
         },
@@ -59,9 +59,9 @@ export const groupsRoutes = new Elysia({
         "/:id",
         ({ params, body }) => service.edit({ ...body, id: params.id }),
         {
-          body: t.Omit(GroupsMutateSchema, ["id", "branchId"]),
+          body: t.Omit(GroupsMutateSchema, ["id", "branchId", "clients"]),
           response: {
-            200: t.Omit(Group, ["branch"]),
+            200: t.Omit(Group, ["branch", "clients"]),
           },
           branchCheck: true,
         },

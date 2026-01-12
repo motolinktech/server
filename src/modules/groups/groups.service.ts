@@ -51,6 +51,9 @@ export function groupsService() {
     async getById(id: string) {
       const group = await db.group.findUnique({
         where: { id },
+        include: {
+          clients: true,
+        }
       });
 
       if (!group) {
