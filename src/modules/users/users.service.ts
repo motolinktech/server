@@ -19,7 +19,12 @@ export function usersService() {
       const data = { ...body, status: statusEnum.PENDING as string };
 
       if (data.role === userRolesEnum.ADMIN) {
-        data.branches = [];
+        const branchesIds = await db.branch.findMany({
+          where: {},
+          select: { id: true },
+        });
+
+        data.branches = branchesIds.map((branch) => branch.id);
       }
 
       if (data.password) {
