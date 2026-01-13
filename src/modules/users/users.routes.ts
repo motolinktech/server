@@ -19,22 +19,17 @@ export const usersRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true }, (app) =>
     app
-      .post(
-        "/",
-        ({ body, currentBranch }) =>
-          service.create({ ...body, branches: [currentBranch] }),
-        {
-          body: t.Omit(UserMutateSchema, ["id"]),
-          response: {
-            200: t.Omit(User, [
-              "password",
-              "verificationTokens",
-              "historyTraces",
-            ]),
-          },
-          branchCheck: true,
+      .post("/", ({ body }) => service.create({ ...body }), {
+        body: t.Omit(UserMutateSchema, ["id"]),
+        response: {
+          200: t.Omit(User, [
+            "password",
+            "verificationTokens",
+            "historyTraces",
+          ]),
         },
-      )
+        branchCheck: true,
+      })
       .get(
         "/",
         ({ query, currentBranch }) => service.list({ ...query, currentBranch }),

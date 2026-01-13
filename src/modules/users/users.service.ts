@@ -19,15 +19,6 @@ export function usersService() {
     async create(body: Omit<UserMutateDTO, "id">) {
       const data = { ...body, status: statusEnum.PENDING as string };
 
-      if (data.role === userRolesEnum.ADMIN) {
-        const branchesIds = await db.branch.findMany({
-          where: {},
-          select: { id: true },
-        });
-
-        data.branches = branchesIds.map((branch) => branch.id);
-      }
-
       if (data.password) {
         data.password = await hashService().hash(data.password);
         data.status = statusEnum.ACTIVE as string;
