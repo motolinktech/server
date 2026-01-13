@@ -20,7 +20,8 @@
     "dotenv": "^17.2.3",
     "elysia": "latest",
     "pg": "^8.16.3",
-    "prismabox": "^1.1.26"
+    "prismabox": "^1.1.26",
+    "resend": "^6.7.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.11",

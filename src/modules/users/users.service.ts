@@ -1,5 +1,6 @@
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
+import { resend } from "../../services/email.service";
 import { hashService } from "../../services/hash.service";
 import { statusEnum } from "../../shared/enums/status.enum";
 import { userRolesEnum } from "../../shared/enums/userRoles.enum";
@@ -42,12 +43,28 @@ export function usersService() {
       });
 
       if (data.status === statusEnum.PENDING && !data.password) {
+        const token = await generateToken();
+
         await db.verificationToken.create({
           data: {
             userId: user.id,
-            token: await generateToken(),
+            token,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
           },
+        });
+
+        const passwordSetupLink = `${process.env.WEB_APP_URL}/trocar-senha?token=${token}&userId=${user.id}`;
+
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
+          to: user.email,
+          subject: "Configure sua senha",
+          html: `
+            <p>Olá!</p>
+            <p>Sua conta foi criada. Para configurar sua senha, clique no link abaixo:</p>
+            <p><a href="${passwordSetupLink}">${passwordSetupLink}</a></p>
+            <p>Este link expira em 24 horas.</p>
+          `,
         });
       }
 
