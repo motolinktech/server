@@ -3,6 +3,7 @@ import { type Static, t } from "elysia";
 export const DeliverymenMutateSchema = t.Object({
   id: t.Optional(t.String()),
   name: t.String({ minLength: 3, maxLength: 100 }),
+  files: t.Optional(t.Array(t.String())),
   document: t.String(),
   phone: t.String(),
   contractType: t.String(),

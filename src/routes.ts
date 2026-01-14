@@ -8,12 +8,14 @@ import { historyTracesRoutes } from "./modules/historyTraces/historyTraces.route
 import { paymentRequestsRoutes } from "./modules/paymentRequests/paymentRequests.routes";
 import { regionsRoutes } from "./modules/regions/regions.routes";
 import { usersRoutes } from "./modules/users/users.routes";
+import { eventsRoutes } from "./modules/events/events.routes";
 import { workShiftSlotsRoutes } from "./modules/workShiftSlots/workShiftSlots.routes";
 
 export const routes = new Elysia({ prefix: "/api" })
   .use(authRoutes)
   .use(branchesRoutes)
   .use(usersRoutes)
+  .use(eventsRoutes)
   .use(groupsRoutes)
   .use(regionsRoutes)
   .use(historyTracesRoutes)

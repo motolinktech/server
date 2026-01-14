@@ -32,6 +32,7 @@ model User {
   updatedAt          DateTime            @updatedAt
   createdAt          DateTime            @default(now())
   verificationTokens VerificationToken[]
+  events             Event[]
 
   @@map("users")
 }
@@ -116,6 +117,7 @@ model Deliveryman {
   vehicleModel    String?
   vehiclePlate    String?
   vehicleColor    String?
+  files           String[]         @default([])
   branchId        String
   branch          Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   regionId        String?
@@ -237,4 +239,20 @@ model PaymentRequest {
   createdAt       DateTime      @default(now())
 
   @@map("payment_requests")
+}
+
+model Event {
+  id          String   @id @default(uuid(7))
+  name        String
+  description String?
+  date        DateTime
+  startHour   DateTime
+  endHour     DateTime
+  branches    String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@map("events")
 }
