@@ -655,6 +655,7 @@ Create a new client with optional commercial conditions.
 | neighborhood | string | Yes | - | Neighborhood |
 | uf | string | Yes | - | State code (e.g., "SP") |
 | contactName | string | Yes | - | Contact person name |
+| branchId | string (UUID) | Yes | - | Branch ID |
 | regionId | string (UUID) | No | - | Region ID |
 | groupId | string (UUID) | No | - | Group ID |
 
@@ -662,7 +663,8 @@ Create a new client with optional commercial conditions.
 | Field | Type | Description |
 |-------|------|-------------|
 | paymentForm | string[] | Payment methods |
-| paymentTermDays | number | Payment term in days |
+| dailyPeriods | string[] | Daily work shift periods |
+| guaranteedPeriods | string[] | Guaranteed work shift periods |
 | deliveryAreaKm | number | Delivery area in km |
 | isMotolinkCovered | boolean | Motolink coverage flag |
 | guaranteedDay | number | Guaranteed daily rate (day) |
@@ -675,12 +677,12 @@ Create a new client with optional commercial conditions.
 | clientDailyNightWknd | number | Client daily fee (weekend night) |
 | clientPerDelivery | number | Client per-delivery fee |
 | clientAdditionalKm | number | Client additional km fee |
-| courierDailyDay | number | Courier daily fee (day) |
-| courierDailyDayWknd | number | Courier daily fee (weekend day) |
-| courierDailyNight | number | Courier daily fee (night) |
-| courierDailyNightWknd | number | Courier daily fee (weekend night) |
-| courierPerDelivery | number | Courier per-delivery fee |
-| courierAdditionalKm | number | Courier additional km fee |
+| deliverymanDailyDay | number | Deliveryman daily fee (day) |
+| deliverymanDailyDayWknd | number | Deliveryman daily fee (weekend day) |
+| deliverymanDailyNight | number | Deliveryman daily fee (night) |
+| deliverymanDailyNightWknd | number | Deliveryman daily fee (weekend night) |
+| deliverymanPerDelivery | number | Deliveryman per-delivery fee |
+| deliverymanAdditionalKm | number | Deliveryman additional km fee |
 
 **Example Request:**
 ```bash
@@ -700,15 +702,17 @@ curl -X POST http://localhost:8888/api/clients \
       "neighborhood": "Bela Vista",
       "uf": "SP",
       "contactName": "Maria Silva",
+      "branchId": "019012ab-1234-7000-8000-000000000010",
       "regionId": "019012ab-1234-7000-8000-000000000020"
     },
     "commercialCondition": {
       "paymentForm": ["PIX", "Boleto"],
-      "paymentTermDays": 30,
+      "dailyPeriods": ["DAY", "NIGHT"],
+      "guaranteedPeriods": ["DAY"],
       "deliveryAreaKm": 10,
       "isMotolinkCovered": true,
       "clientPerDelivery": 8.50,
-      "courierPerDelivery": 6.00
+      "deliverymanPerDelivery": 6.00
     }
   }'
 ```
@@ -759,6 +763,7 @@ List clients with basic information (lightweight response).
 | cnpj | string | No | Filter by CNPJ |
 | city | string | No | Filter by city |
 | uf | string | No | Filter by state |
+| branchId | string | No | Filter by branch |
 | regionId | string | No | Filter by region |
 | groupId | string | No | Filter by group |
 | isDeleted | boolean | No | Include deleted (default: false) |
@@ -858,11 +863,12 @@ curl -X GET "http://localhost:8888/api/clients/complete?page=1&limit=10" \
         "id": "019012ab-1234-7000-8000-000000000031",
         "clientId": "019012ab-1234-7000-8000-000000000030",
         "paymentForm": ["PIX", "Boleto"],
-        "paymentTermDays": 30,
+        "dailyPeriods": ["DAY", "NIGHT"],
+        "guaranteedPeriods": ["DAY"],
         "deliveryAreaKm": 10,
         "isMotolinkCovered": true,
         "clientPerDelivery": "8.50",
-        "courierPerDelivery": "6.00"
+        "deliverymanPerDelivery": "6.00"
       }
     }
   ],

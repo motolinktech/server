@@ -165,7 +165,8 @@ model CommercialCondition {
   clientId                  String   @unique
   client                    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   paymentForm               String[] @default([])
-  paymentTermDays           Int      @default(0)
+  dailyPeriods              String[] @default([])
+  garanteedPeriods          String[] @default([])
   deliveryAreaKm            Float    @default(0)
   isMotolinkCovered         Boolean  @default(false)
   guaranteedDay             Int      @default(0)

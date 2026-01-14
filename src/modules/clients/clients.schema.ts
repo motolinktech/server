@@ -19,7 +19,8 @@ export const ClientMutateSchema = t.Object({
 
 export const CommercialConditionSchema = t.Object({
   paymentForm: t.Optional(t.Array(t.String())),
-  paymentTermDays: t.Optional(t.Number()),
+  dailyPeriods: t.Optional(t.Array(t.String())),
+  guaranteedPeriods: t.Optional(t.Array(t.String())),
   deliveryAreaKm: t.Optional(t.Number()),
   isMotolinkCovered: t.Optional(t.Boolean()),
   guaranteedDay: t.Optional(t.Number()),
