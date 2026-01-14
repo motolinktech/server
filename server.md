@@ -2106,6 +2106,135 @@ curl -X PUT http://localhost:8888/api/work-shift-slots/019012ab-1234-7000-8000-0
 
 ---
 
+## Planning Module
+
+Manage client daily planning (number of slots required per date).
+
+### POST /api/planning
+
+Create or register planned slots for a client on a specific date.
+
+**Authentication Required:** Yes (Bearer token + branch-id header)
+
+**Headers:**
+| Header | Required | Description |
+|--------|----------|-------------|
+| Authorization | Yes | `Bearer <token>` |
+| branch-id | Yes | Branch UUID |
+| Content-Type | Yes | `application/json` |
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| clientId | string (UUID) | Yes | Client to plan for |
+| branchId | string (UUID) | Yes | Branch the planning belongs to |
+| plannedDate | string (ISO date) | Yes | Date to plan (day-only) |
+| plannedCount | number | Yes | Number of slots (deliverymen) planned |
+
+**Note:** Creating planning for dates before today is forbidden; the API returns a 400 and a Portuguese error message.
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8888/api/planning \
+  -H "Authorization: Bearer <token>" \
+  -H "branch-id: 019012ab-1234-7000-8000-000000000010" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientId": "019012ab-1234-7000-8000-000000000030",
+    "branchId": "019012ab-1234-7000-8000-000000000010",
+    "plannedDate": "2024-01-20",
+    "plannedCount": 3
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "id": "019012ab-1234-7000-8000-000000000090",
+  "clientId": "019012ab-1234-7000-8000-000000000030",
+  "branchId": "019012ab-1234-7000-8000-000000000010",
+  "plannedDate": "2024-01-20T00:00:00.000Z",
+  "plannedCount": 3,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "client": { "id": "019012ab-1234-7000-8000-000000000030", "name": "Restaurante Bom Sabor" }
+}
+```
+
+---
+
+### GET /api/planning
+
+List plannings with pagination and filters.
+
+**Authentication Required:** Yes (Bearer token + branch-id header)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| page | number | No | Page number (default: 1) |
+| limit | number | No | Items per page (default: 20) |
+| clientId | string | No | Filter by client |
+| branchId | string | No | Filter by branch |
+| startDate | string (ISO) | No | Filter plannedDate >= startDate |
+| endDate | string (ISO) | No | Filter plannedDate <= endDate |
+
+**Response (200):**
+```json
+{
+  "data": [ /* planning objects with client info */ ],
+  "count": 12
+}
+```
+
+---
+
+### GET /api/planning/:id
+
+Get planning details by ID.
+
+**Authentication Required:** Yes (Bearer token + branch-id header)
+
+**Response (200):** returns the planning object including `client`.
+
+**Error Responses:**
+| Status | Message | Description |
+|--------|---------|-------------|
+| 404 | Planejamento nao encontrado. | Planning not found |
+
+---
+
+### PUT /api/planning/:id
+
+Update a planning (partial updates allowed).
+
+**Authentication Required:** Yes (Bearer token + branch-id header)
+
+**Validation:** Editing a planning for a date before today is forbidden and returns 400.
+
+**Request Body:** same fields as POST (all optional except `plannedCount` when updating quantity).
+
+**Response (200):** returns updated planning with client info.
+
+---
+
+### DELETE /api/planning/:id
+
+Delete a planning.
+
+**Authentication Required:** Yes (Bearer token + branch-id header)
+
+**Validation:** Deleting plannings for dates before today is forbidden and returns 400.
+
+**Response (200):** `{ "message": "Planejamento deletado com sucesso." }`
+
+---
+
+**Behavior notes:**
+- Planning is a separate source-of-truth for the number of required slots per client/date.
+- Work shift slots (`/api/work-shift-slots`) represent actual assigned or unassigned slots; the system should reconcile planned counts with existing `WorkShiftSlot` rows (create unassigned slots when planning increases, or require explicit confirmation when planned count is decreased below current assigned slots).
+- Error messages and user-facing validation follow Portuguese messages used across the API (e.g. `Não é permitido criar planejamentos para datas passadas.`).
+
 ## Payment Requests Module
 
 Manage payment requests for deliverymen.

@@ -159,6 +159,7 @@ model Client {
   commercialCondition CommercialCondition?
   workShiftSlots      WorkShiftSlot[]
   blocks              ClientBlock[]
+  plannings           Planning[]
 
   @@map("clients")
 }
@@ -256,4 +257,18 @@ model Event {
   createdBy   User     @relation(fields: [createdById], references: [id])
 
   @@map("events")
+}
+
+model Planning {
+  id           String   @id @default(uuid(7))
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  branchId     String
+  plannedDate  DateTime
+  plannedCount Int
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([clientId, plannedDate])
+  @@map("plannings")
 }
