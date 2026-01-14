@@ -37,7 +37,7 @@ export const authRoutes = new Elysia({
       body: AuthSchema,
       response: {
         200: t.Object({
-          user: t.Omit(User, ["password", "verificationTokens"]),
+          user: t.Omit(User, ["password", "verificationTokens", "events"]),
           token: t.String(),
         }),
       },

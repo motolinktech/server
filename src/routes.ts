@@ -4,15 +4,24 @@ import { branchesRoutes } from "./modules/branches/branches.routes";
 import { clientsRoutes } from "./modules/clients/clients.routes";
 import { deliverymenRoutes } from "./modules/deliverymen/deliverymen.routes";
 import { eventsRoutes } from "./modules/events/events.routes";
-import { es
-import { historyTracesRoutesrom "./modules/hihihistoryTracesthistoryTraces.routes.routesskShiftSlots.routeskShiftSlots.routes";
+import { groupsRoutes } from "./modules/groups/groups.routes";
+import { historyTracesRoutes } from "./modules/historyTraces/historyTraces.routes";
+import { paymentRequestsRoutes } from "./modules/paymentRequests/paymentRequests.routes";
+import { planningRoutes } from "./modules/planning/planning.routes";
+import { regionsRoutes } from "./modules/regions/regions.routes";
+import { usersRoutes } from "./modules/users/users.routes";
+import { workShiftSlotsRoutes } from "./modules/workShiftSlots/workShiftSlots.routes";
+
 export const routes = new Elysia({ prefix: "/api" })
-  .use(usersR_routes
+  .use(authRoutes)
+  .use(branchesRoutes)
+  .use(usersRoutes)
+  .use(eventsRoutes)
   .use(groupsRoutes)
-  .use(region_routess)
+  .use(regionsRoutes)
   .use(historyTracesRoutes)
   .use(deliverymenRoutes)
-  .use(client_routess)
+  .use(clientsRoutes)
   .use(workShiftSlotsRoutes)
   .use(paymentRequestsRoutes)
   .use(planningRoutes);
