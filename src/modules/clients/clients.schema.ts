@@ -32,12 +32,12 @@ export const CommercialConditionSchema = t.Object({
   clientDailyNightWknd: t.Optional(t.Number()),
   clientPerDelivery: t.Optional(t.Number()),
   clientAdditionalKm: t.Optional(t.Number()),
-  courierDailyDay: t.Optional(t.Number()),
-  courierDailyDayWknd: t.Optional(t.Number()),
-  courierDailyNight: t.Optional(t.Number()),
-  courierDailyNightWknd: t.Optional(t.Number()),
-  courierPerDelivery: t.Optional(t.Number()),
-  courierAdditionalKm: t.Optional(t.Number()),
+  deliverymanDailyDay: t.Optional(t.Number()),
+  deliverymanDailyDayWknd: t.Optional(t.Number()),
+  deliverymanDailyNight: t.Optional(t.Number()),
+  deliverymanDailyNightWknd: t.Optional(t.Number()),
+  deliverymanPerDelivery: t.Optional(t.Number()),
+  deliverymanAdditionalKm: t.Optional(t.Number()),
 });
 
 export const ClientWithCommercialConditionSchema = t.Object({

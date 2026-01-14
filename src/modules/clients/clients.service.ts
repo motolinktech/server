@@ -18,11 +18,17 @@ export function clientsService() {
       const result = await db.client.create({
         data: {
           ...client,
-          commercialCondition: {
-            create: commercialCondition || {},
-          },
         },
       });
+
+      if (commercialCondition) {
+        await db.commercialCondition.create({
+          data: {
+            ...commercialCondition,
+            clientId: result.id,
+          },
+        });
+      }
 
       return result;
     },
