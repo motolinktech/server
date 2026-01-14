@@ -108,14 +108,6 @@ export function planningService() {
       const updatedPlanning = await db.planning.update({
         where: { id: data.id },
         data: updateData,
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
       });
 
       return updatedPlanning;
@@ -124,9 +116,6 @@ export function planningService() {
     async getById(id: string) {
       const planning = await db.planning.findUnique({
         where: { id },
-        include: {
-          client: true,
-        },
       });
 
       if (!planning) {
@@ -169,14 +158,6 @@ export function planningService() {
           skip: (page - 1) * limit,
           where,
           orderBy: { plannedDate: "asc" },
-          include: {
-            client: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
         }),
         db.planning.count({ where }),
       ]);

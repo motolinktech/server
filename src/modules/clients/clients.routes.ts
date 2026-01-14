@@ -18,6 +18,7 @@ const ClientResponse = t.Omit(Client, [
   "commercialCondition",
   "workShiftSlots",
   "blocks",
+  "plannings",
 ]);
 
 export const clientsRoutes = new Elysia({
@@ -62,11 +63,12 @@ export const clientsRoutes = new Elysia({
                   cep: t.String(),
                   street: t.String(),
                   number: t.String(),
-                  complement: t.String(),
+                  complement: t.Nullable(t.String()),
                   city: t.String(),
                   neighborhood: t.String(),
                   uf: t.String(),
                   contactName: t.String(),
+                  contactPhone: t.String(),
                   isDeleted: t.Boolean(),
                   createdAt: t.Date(),
                   updatedAt: t.Date(),

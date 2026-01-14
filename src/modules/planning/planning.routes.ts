@@ -20,44 +20,21 @@ export const planningRoutes = new Elysia({
       .post("/", ({ body }) => service.create(body), {
         body: t.Omit(PlanningMutateSchema, ["id"]),
         response: {
-          200: t.Composite([
-            PlanningResponse,
-            t.Object({
-              client: t.Object({
-                id: t.String(),
-                name: t.String(),
-              }),
-            }),
-          ]),
+          200: PlanningResponse,
         },
       })
       .get("/", ({ query }) => service.listAll(query), {
         query: ListPlanningsSchema,
         response: {
           200: t.Object({
-            data: t.Array(
-              t.Composite([
-                PlanningResponse,
-                t.Object({
-                  client: t.Object({
-                    id: t.String(),
-                    name: t.String(),
-                  }),
-                }),
-              ]),
-            ),
+            data: t.Array(PlanningResponse),
             count: t.Number(),
           }),
         },
       })
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
-          200: t.Composite([
-            Planning,
-            t.Object({
-              client: t.Any(),
-            }),
-          ]),
+          200: PlanningResponse,
         },
       })
       .put(
@@ -66,15 +43,7 @@ export const planningRoutes = new Elysia({
         {
           body: t.Partial(t.Omit(PlanningMutateSchema, ["id"])),
           response: {
-            200: t.Composite([
-              PlanningResponse,
-              t.Object({
-                client: t.Object({
-                  id: t.String(),
-                  name: t.String(),
-                }),
-              }),
-            ]),
+            200: PlanningResponse,
           },
         },
       )
