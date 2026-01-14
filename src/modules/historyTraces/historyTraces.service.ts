@@ -111,50 +111,57 @@ export function historyTraceService() {
       userId,
       action,
     }: HistoryTraceCreateDTO) {
-      if (!userId) {
-        throw new AppError("Usuário é obrigatório.", 400);
+      try {
+        if (!userId) {
+          return null;
+        }
+
+        const user = await db.user.findUnique({
+          where: { id: userId },
+          select: {
+            name: true,
+            email: true,
+            role: true,
+            permissions: true,
+            branches: true,
+            status: true,
+          },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        const entityId = extractEntityId(next, prev);
+        const entityType = extractEntityType(next, prev);
+        const nextPayload = stripIgnoredFields(next);
+        const prevPayload = stripIgnoredFields(prev);
+
+        const changesRaw =
+          action === historyTraceActionsEnum.CREATE || !prev
+            ? nextPayload
+            : buildDiff(nextPayload, prevPayload);
+
+        const changes = changesRaw as Prisma.InputJsonValue;
+
+        const historyTrace = await db.historyTrace.create({
+          data: {
+            userId,
+            user,
+            action,
+            entityType,
+            entityId,
+            changes,
+          },
+        });
+
+        return historyTrace;
+      } catch (err) {
+        // Never throw from history trace creation; log and return null
+        // eslint-disable-next-line no-console
+        console.error("historyTrace.create failed:", err);
+        return null;
       }
-
-      const user = await db.user.findUnique({
-        where: { id: userId },
-        select: {
-          name: true,
-          email: true,
-          role: true,
-          permissions: true,
-          branches: true,
-          status: true,
-        },
-      });
-
-      if (!user) {
-        throw new AppError("Usuário não encontrado.", 404);
-      }
-
-      const entityId = extractEntityId(next, prev);
-      const entityType = extractEntityType(next, prev);
-      const nextPayload = stripIgnoredFields(next);
-      const prevPayload = stripIgnoredFields(prev);
-
-      const changesRaw =
-        action === historyTraceActionsEnum.CREATE || !prev
-          ? nextPayload
-          : buildDiff(nextPayload, prevPayload);
-
-      const changes = changesRaw as Prisma.InputJsonValue;
-
-      const historyTrace = await db.historyTrace.create({
-        data: {
-          userId,
-          user,
-          action,
-          entityType,
-          entityId,
-          changes,
-        },
-      });
-
-      return historyTrace;
     },
 
     async getById(id: string) {

@@ -2,9 +2,11 @@ import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { resend } from "../../services/email.service";
 import { hashService } from "../../services/hash.service";
+import { historyTraceActionsEnum } from "../../shared/enums/historyTraceAction.enum";
 import { statusEnum } from "../../shared/enums/status.enum";
 import { AppError } from "../../utils/appError";
 import { generateToken } from "../../utils/generateToken";
+import { historyTraceService } from "../historyTraces/historyTraces.service";
 import type {
   UserDetailedType,
   UserMutateDTO,
@@ -58,13 +60,42 @@ export function usersService() {
         });
       }
 
+      // Record creation in history traces (non-blocking)
+      void historyTraceService().create({
+        new: {
+          ...(user as unknown as Record<string, unknown>),
+          entityType: "User",
+        },
+        old: null,
+        userId: user.id,
+        action: historyTraceActionsEnum.CREATE,
+      });
+
       return user;
     },
 
     async delete(id: string) {
+      const existingUser = await db.user.findUnique({
+        where: { id },
+        omit: { password: true },
+      });
+
       const user = await db.user.update({
         where: { id },
         data: { isDeleted: true },
+      });
+
+      // Record deletion in history traces (non-blocking)
+      void historyTraceService().create({
+        new: {
+          ...(user as unknown as Record<string, unknown>),
+          entityType: "User",
+        },
+        old: existingUser
+          ? { ...(existingUser as Record<string, unknown>), entityType: "User" }
+          : null,
+        userId: user.id,
+        action: historyTraceActionsEnum.DELETE,
       });
 
       return user;
@@ -167,6 +198,11 @@ export function usersService() {
 
       const hashedPassword = await hashService().hash(password);
 
+      const prevUser = await db.user.findUnique({
+        where: { id },
+        omit: { password: true },
+      });
+
       const updatedUser = await db.user.update({
         where: { id },
         data: {
@@ -176,6 +212,19 @@ export function usersService() {
         omit: {
           password: true,
         },
+      });
+
+      // Record password change in history traces (non-blocking)
+      void historyTraceService().create({
+        new: {
+          ...(updatedUser as unknown as Record<string, unknown>),
+          entityType: "User",
+        },
+        old: prevUser
+          ? { ...(prevUser as Record<string, unknown>), entityType: "User" }
+          : null,
+        userId: updatedUser.id,
+        action: historyTraceActionsEnum.EDIT,
       });
 
       await db.verificationToken.deleteMany({
@@ -202,6 +251,19 @@ export function usersService() {
         data: {
           ...data,
         },
+      });
+
+      // Record update in history traces (non-blocking)
+      void historyTraceService().create({
+        new: {
+          ...(updatedUser as unknown as Record<string, unknown>),
+          entityType: "User",
+        },
+        old: existingUser
+          ? { ...(existingUser as Record<string, unknown>), entityType: "User" }
+          : null,
+        userId: updatedUser.id,
+        action: historyTraceActionsEnum.EDIT,
       });
 
       return updatedUser;
