@@ -140,10 +140,11 @@ model Client {
   cep                 String
   street              String
   number              String
-  complement          String
+  complement          String?
   city                String
   neighborhood        String
   uf                  String
+  observations        String               @default("")
   regionId            String?
   region              Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
   groupId             String?

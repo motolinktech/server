@@ -645,19 +645,21 @@ Create a new client with optional commercial conditions.
 **Client Object:**
 | Field | Type | Required | Validation | Description |
 |-------|------|----------|------------|-------------|
+| id | string | No | UUID | Client ID (optional for updates) |
 | name | string | Yes | 3-100 characters | Client name |
 | cnpj | string | Yes | - | Brazilian company ID |
 | cep | string | Yes | - | Postal code |
 | street | string | Yes | - | Street address |
 | number | string | Yes | - | Address number |
-| complement | string | Yes | - | Address complement |
+| complement | string | No | - | Address complement |
 | city | string | Yes | - | City |
 | neighborhood | string | Yes | - | Neighborhood |
 | uf | string | Yes | - | State code (e.g., "SP") |
-| contactName | string | Yes | - | Contact person name |
-| branchId | string (UUID) | Yes | - | Branch ID |
+| observations | string | No | - | Optional observations about the client |
 | regionId | string (UUID) | No | - | Region ID |
 | groupId | string (UUID) | No | - | Group ID |
+| contactName | string | Yes | - | Contact person name |
+| branchId | string (UUID) | Yes | - | Branch ID |
 
 **Commercial Condition Object (all fields optional):**
 | Field | Type | Description |

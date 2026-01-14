@@ -7,13 +7,14 @@ export const ClientMutateSchema = t.Object({
   cep: t.String(),
   street: t.String(),
   number: t.String(),
-  complement: t.String(),
+  complement: t.Optional(t.String()),
   city: t.String(),
   neighborhood: t.String(),
   uf: t.String(),
   regionId: t.Optional(t.String()),
   groupId: t.Optional(t.String()),
   contactName: t.String(),
+  observations: t.Optional(t.String()),
   branchId: t.String(),
 });
 
