@@ -14,6 +14,7 @@ export const ClientMutateSchema = t.Object({
   regionId: t.Optional(t.String()),
   groupId: t.Optional(t.String()),
   contactName: t.String(),
+  contactPhone: t.String(),
   observations: t.Optional(t.String()),
   branchId: t.String(),
 });
