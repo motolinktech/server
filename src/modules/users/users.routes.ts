@@ -80,7 +80,7 @@ export const usersRoutes = new Elysia({
           return service.changePassword({ ...body, id: params.id });
         },
         {
-          body: UserPasswordChangeSchema,
+          body: t.Omit(UserPasswordChangeSchema, ["id"]),
           params: t.Object({
             id: t.String({
               error: "ID do usuário é obrigatório",

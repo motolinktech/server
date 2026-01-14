@@ -65,6 +65,9 @@ export const UserPasswordChangeSchema = t.Object({
   token: t.String({
     error: "Token é obrigatório",
   }),
+  id: t.String({
+    error: "ID do usuário é obrigatório",
+  }),
 });
 
 export const UserDetailedDocumentSchema = t.Object({

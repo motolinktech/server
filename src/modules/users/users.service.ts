@@ -3,7 +3,6 @@ import { db } from "../../services/database.service";
 import { resend } from "../../services/email.service";
 import { hashService } from "../../services/hash.service";
 import { statusEnum } from "../../shared/enums/status.enum";
-import { userRolesEnum } from "../../shared/enums/userRoles.enum";
 import { AppError } from "../../utils/appError";
 import { generateToken } from "../../utils/generateToken";
 import type {
