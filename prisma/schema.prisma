@@ -168,9 +168,10 @@ model CommercialCondition {
   id                        String   @id @default(uuid(7))
   clientId                  String   @unique
   client                    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bagsAllocated             Int      @default(0)
   paymentForm               String[] @default([])
   dailyPeriods              String[] @default([])
-  garanteedPeriods          String[] @default([])
+  guaranteedPeriods         String[] @default([])
   deliveryAreaKm            Float    @default(0)
   isMotolinkCovered         Boolean  @default(false)
   guaranteedDay             Int      @default(0)

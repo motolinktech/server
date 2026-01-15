@@ -623,6 +623,8 @@ curl -X PUT http://localhost:8888/api/branches/019012ab-1234-7000-8000-000000000
 
 Client management endpoints for managing business clients.
 
+**Nota sobre valores monetários (Decimal):** campos monetários são representados como `string` nos endpoints (tanto no envio quanto no retorno). Exemplo: `"100.11"`.
+
 ### POST /api/clients
 
 Create a new client with optional commercial conditions.
@@ -645,7 +647,6 @@ Create a new client with optional commercial conditions.
 **Client Object:**
 | Field | Type | Required | Validation | Description |
 |-------|------|----------|------------|-------------|
-| id | string | No | UUID | Client ID (optional for updates) |
 | name | string | Yes | 3-100 characters | Client name |
 | cnpj | string | Yes | - | Brazilian company ID |
 | cep | string | Yes | - | Postal code |
@@ -659,7 +660,9 @@ Create a new client with optional commercial conditions.
 | regionId | string (UUID) | No | - | Region ID |
 | groupId | string (UUID) | No | - | Group ID |
 | contactName | string | Yes | - | Contact person name |
-| branchId | string (UUID) | Yes | - | Branch ID |
+| contactPhone | string | Yes | - | Contact phone |
+
+**Note:** `branchId` is inferred from the `branch-id` header (it is not accepted in the request body).
 
 **Commercial Condition Object (all fields optional):**
 | Field | Type | Description |
@@ -669,22 +672,23 @@ Create a new client with optional commercial conditions.
 | guaranteedPeriods | string[] | Guaranteed work shift periods |
 | deliveryAreaKm | number | Delivery area in km |
 | isMotolinkCovered | boolean | Motolink coverage flag |
+| bagsAllocated | number | Bags allocated to the client |
 | guaranteedDay | number | Guaranteed daily rate (day) |
 | guaranteedDayWeekend | number | Guaranteed daily rate (weekend day) |
 | guaranteedNight | number | Guaranteed daily rate (night) |
 | guaranteedNightWeekend | number | Guaranteed daily rate (weekend night) |
-| clientDailyDay | number | Client daily fee (day) |
-| clientDailyDayWknd | number | Client daily fee (weekend day) |
-| clientDailyNight | number | Client daily fee (night) |
-| clientDailyNightWknd | number | Client daily fee (weekend night) |
-| clientPerDelivery | number | Client per-delivery fee |
-| clientAdditionalKm | number | Client additional km fee |
-| deliverymanDailyDay | number | Deliveryman daily fee (day) |
-| deliverymanDailyDayWknd | number | Deliveryman daily fee (weekend day) |
-| deliverymanDailyNight | number | Deliveryman daily fee (night) |
-| deliverymanDailyNightWknd | number | Deliveryman daily fee (weekend night) |
-| deliverymanPerDelivery | number | Deliveryman per-delivery fee |
-| deliverymanAdditionalKm | number | Deliveryman additional km fee |
+| clientDailyDay | string | Client daily fee (day). Example: `"100.11"` |
+| clientDailyDayWknd | string | Client daily fee (weekend day). Example: `"100.11"` |
+| clientDailyNight | string | Client daily fee (night). Example: `"100.11"` |
+| clientDailyNightWknd | string | Client daily fee (weekend night). Example: `"100.11"` |
+| clientPerDelivery | string | Client per-delivery fee. Example: `"8.50"` |
+| clientAdditionalKm | string | Client additional km fee. Example: `"1.25"` |
+| deliverymanDailyDay | string | Deliveryman daily fee (day). Example: `"80.00"` |
+| deliverymanDailyDayWknd | string | Deliveryman daily fee (weekend day). Example: `"80.00"` |
+| deliverymanDailyNight | string | Deliveryman daily fee (night). Example: `"90.00"` |
+| deliverymanDailyNightWknd | string | Deliveryman daily fee (weekend night). Example: `"90.00"` |
+| deliverymanPerDelivery | string | Deliveryman per-delivery fee. Example: `"6.00"` |
+| deliverymanAdditionalKm | string | Deliveryman additional km fee. Example: `"1.00"` |
 
 **Example Request:**
 ```bash
@@ -704,7 +708,8 @@ curl -X POST http://localhost:8888/api/clients \
       "neighborhood": "Bela Vista",
       "uf": "SP",
       "contactName": "Maria Silva",
-      "branchId": "019012ab-1234-7000-8000-000000000010",
+      "contactPhone": "11999999999",
+      "observations": "Atender na portaria",
       "regionId": "019012ab-1234-7000-8000-000000000020"
     },
     "commercialCondition": {
@@ -713,8 +718,8 @@ curl -X POST http://localhost:8888/api/clients \
       "guaranteedPeriods": ["DAY"],
       "deliveryAreaKm": 10,
       "isMotolinkCovered": true,
-      "clientPerDelivery": 8.50,
-      "deliverymanPerDelivery": 6.00
+      "clientPerDelivery": "8.50",
+      "deliverymanPerDelivery": "6.00"
     }
   }'
 ```
@@ -732,7 +737,9 @@ curl -X POST http://localhost:8888/api/clients \
   "city": "Sao Paulo",
   "neighborhood": "Bela Vista",
   "uf": "SP",
+  "observations": "Atender na portaria",
   "contactName": "Maria Silva",
+  "contactPhone": "11999999999",
   "branchId": "019012ab-1234-7000-8000-000000000010",
   "regionId": "019012ab-1234-7000-8000-000000000020",
   "groupId": null,
@@ -765,10 +772,11 @@ List clients with basic information (lightweight response).
 | cnpj | string | No | Filter by CNPJ |
 | city | string | No | Filter by city |
 | uf | string | No | Filter by state |
-| branchId | string | No | Filter by branch |
 | regionId | string | No | Filter by region |
 | groupId | string | No | Filter by group |
 | isDeleted | boolean | No | Include deleted (default: false) |
+
+**Note:** The branch is always scoped by the `branch-id` header.
 
 **Example Request:**
 ```bash
@@ -793,6 +801,7 @@ curl -X GET "http://localhost:8888/api/clients/simplified?page=1&limit=10&city=S
       "neighborhood": "Bela Vista",
       "uf": "SP",
       "contactName": "Maria Silva",
+      "contactPhone": "11999999999",
       "isDeleted": false,
       "createdAt": "2024-01-15T10:00:00.000Z",
       "updatedAt": "2024-01-15T10:00:00.000Z",
@@ -845,7 +854,9 @@ curl -X GET "http://localhost:8888/api/clients/complete?page=1&limit=10" \
       "city": "Sao Paulo",
       "neighborhood": "Bela Vista",
       "uf": "SP",
+      "observations": "Atender na portaria",
       "contactName": "Maria Silva",
+      "contactPhone": "11999999999",
       "branchId": "019012ab-1234-7000-8000-000000000010",
       "regionId": "019012ab-1234-7000-8000-000000000020",
       "groupId": null,
@@ -869,8 +880,25 @@ curl -X GET "http://localhost:8888/api/clients/complete?page=1&limit=10" \
         "guaranteedPeriods": ["DAY"],
         "deliveryAreaKm": 10,
         "isMotolinkCovered": true,
+        "bagsAllocated": 0,
+        "guaranteedDay": 0,
+        "guaranteedDayWeekend": 0,
+        "guaranteedNight": 0,
+        "guaranteedNightWeekend": 0,
+        "clientDailyDay": "100.11",
+        "clientDailyDayWknd": "120.00",
+        "clientDailyNight": "110.00",
+        "clientDailyNightWknd": "130.00",
         "clientPerDelivery": "8.50",
-        "deliverymanPerDelivery": "6.00"
+        "clientAdditionalKm": "1.25",
+        "deliverymanDailyDay": "80.00",
+        "deliverymanDailyDayWknd": "95.00",
+        "deliverymanDailyNight": "90.00",
+        "deliverymanDailyNightWknd": "105.00",
+        "deliverymanPerDelivery": "6.00",
+        "deliverymanAdditionalKm": "1.00",
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "updatedAt": "2024-01-15T10:00:00.000Z"
       }
     }
   ],
@@ -904,7 +932,69 @@ curl -X GET http://localhost:8888/api/clients/019012ab-1234-7000-8000-0000000000
   -H "branch-id: 019012ab-1234-7000-8000-000000000010"
 ```
 
-**Response (200):** Returns client with all relations (branch, region, group, commercialCondition).
+**Response (200):** Returns client with all relations (branch, region, group, commercialCondition). Monetary fields inside `commercialCondition` are strings (e.g. `"100.11"`).
+
+**Example Response (200):**
+```json
+{
+  "id": "019012ab-1234-7000-8000-000000000030",
+  "name": "Restaurante Bom Sabor",
+  "cnpj": "12.345.678/0001-90",
+  "cep": "01310-100",
+  "street": "Av. Paulista",
+  "number": "1000",
+  "complement": "Sala 101",
+  "city": "Sao Paulo",
+  "neighborhood": "Bela Vista",
+  "uf": "SP",
+  "observations": "Atender na portaria",
+  "contactName": "Maria Silva",
+  "contactPhone": "11999999999",
+  "branchId": "019012ab-1234-7000-8000-000000000010",
+  "regionId": "019012ab-1234-7000-8000-000000000020",
+  "groupId": null,
+  "isDeleted": false,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "branch": {
+    "id": "019012ab-1234-7000-8000-000000000010",
+    "name": "Filial Sao Paulo"
+  },
+  "region": {
+    "id": "019012ab-1234-7000-8000-000000000020",
+    "name": "Centro"
+  },
+  "group": null,
+  "commercialCondition": {
+    "id": "019012ab-1234-7000-8000-000000000031",
+    "clientId": "019012ab-1234-7000-8000-000000000030",
+    "paymentForm": ["PIX"],
+    "dailyPeriods": [],
+    "guaranteedPeriods": [],
+    "deliveryAreaKm": 10,
+    "isMotolinkCovered": true,
+    "bagsAllocated": 0,
+    "guaranteedDay": 0,
+    "guaranteedDayWeekend": 0,
+    "guaranteedNight": 0,
+    "guaranteedNightWeekend": 0,
+    "clientDailyDay": "100.11",
+    "clientDailyDayWknd": "0",
+    "clientDailyNight": "0",
+    "clientDailyNightWknd": "0",
+    "clientPerDelivery": "8.50",
+    "clientAdditionalKm": "0",
+    "deliverymanDailyDay": "0",
+    "deliverymanDailyDayWknd": "0",
+    "deliverymanDailyNight": "0",
+    "deliverymanDailyNightWknd": "0",
+    "deliverymanPerDelivery": "6.00",
+    "deliverymanAdditionalKm": "0",
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  }
+}
+```
 
 **Error Responses:**
 | Status | Message | Description |
@@ -937,6 +1027,8 @@ Update a client.
 | client | object | No | Partial client data to update |
 | commercialCondition | object | No | Partial commercial conditions to update |
 
+**Note:** `branchId` is inferred from the `branch-id` header (it is not accepted in the request body).
+
 **Example Request:**
 ```bash
 curl -X PUT http://localhost:8888/api/clients/019012ab-1234-7000-8000-000000000030 \
@@ -948,7 +1040,8 @@ curl -X PUT http://localhost:8888/api/clients/019012ab-1234-7000-8000-0000000000
       "contactName": "Joao Santos"
     },
     "commercialCondition": {
-      "paymentTermDays": 45
+      "clientPerDelivery": "9.00",
+      "deliverymanPerDelivery": "6.50"
     }
   }'
 ```

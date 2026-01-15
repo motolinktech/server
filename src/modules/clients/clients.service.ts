@@ -1,4 +1,4 @@
-import type { Prisma } from "../../../generated/prisma/client";
+import { Prisma, type CommercialCondition } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { AppError } from "../../utils/appError";
 import type {
@@ -9,6 +9,66 @@ import type {
 } from "./clients.schema";
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
+
+function formatCommercialConditionResponse(cc: CommercialCondition) {
+  return {
+    ...cc,
+    clientDailyDay: cc.clientDailyDay.toString(),
+    clientDailyDayWknd: cc.clientDailyDayWknd.toString(),
+    clientDailyNight: cc.clientDailyNight.toString(),
+    clientDailyNightWknd: cc.clientDailyNightWknd.toString(),
+    clientPerDelivery: cc.clientPerDelivery.toString(),
+    clientAdditionalKm: cc.clientAdditionalKm.toString(),
+    deliverymanDailyDay: cc.deliverymanDailyDay.toString(),
+    deliverymanDailyDayWknd: cc.deliverymanDailyDayWknd.toString(),
+    deliverymanDailyNight: cc.deliverymanDailyNight.toString(),
+    deliverymanDailyNightWknd: cc.deliverymanDailyNightWknd.toString(),
+    deliverymanPerDelivery: cc.deliverymanPerDelivery.toString(),
+    deliverymanAdditionalKm: cc.deliverymanAdditionalKm.toString(),
+  };
+}
+
+function parseCommercialConditionInput(input: CommercialConditionDTO) {
+  return {
+    ...input,
+    clientDailyDay: input.clientDailyDay
+      ? new Prisma.Decimal(input.clientDailyDay)
+      : undefined,
+    clientDailyDayWknd: input.clientDailyDayWknd
+      ? new Prisma.Decimal(input.clientDailyDayWknd)
+      : undefined,
+    clientDailyNight: input.clientDailyNight
+      ? new Prisma.Decimal(input.clientDailyNight)
+      : undefined,
+    clientDailyNightWknd: input.clientDailyNightWknd
+      ? new Prisma.Decimal(input.clientDailyNightWknd)
+      : undefined,
+    clientPerDelivery: input.clientPerDelivery
+      ? new Prisma.Decimal(input.clientPerDelivery)
+      : undefined,
+    clientAdditionalKm: input.clientAdditionalKm
+      ? new Prisma.Decimal(input.clientAdditionalKm)
+      : undefined,
+    deliverymanDailyDay: input.deliverymanDailyDay
+      ? new Prisma.Decimal(input.deliverymanDailyDay)
+      : undefined,
+    deliverymanDailyDayWknd: input.deliverymanDailyDayWknd
+      ? new Prisma.Decimal(input.deliverymanDailyDayWknd)
+      : undefined,
+    deliverymanDailyNight: input.deliverymanDailyNight
+      ? new Prisma.Decimal(input.deliverymanDailyNight)
+      : undefined,
+    deliverymanDailyNightWknd: input.deliverymanDailyNightWknd
+      ? new Prisma.Decimal(input.deliverymanDailyNightWknd)
+      : undefined,
+    deliverymanPerDelivery: input.deliverymanPerDelivery
+      ? new Prisma.Decimal(input.deliverymanPerDelivery)
+      : undefined,
+    deliverymanAdditionalKm: input.deliverymanAdditionalKm
+      ? new Prisma.Decimal(input.deliverymanAdditionalKm)
+      : undefined,
+  };
+}
 
 export function clientsService() {
   return {
@@ -22,9 +82,10 @@ export function clientsService() {
       });
 
       if (commercialCondition) {
+        const parsedCondition = parseCommercialConditionInput(commercialCondition);
         await db.commercialCondition.create({
           data: {
-            ...commercialCondition,
+            ...parsedCondition,
             clientId: result.id,
           },
         });
@@ -53,20 +114,29 @@ export function clientsService() {
         throw new AppError("Cliente foi deletado.", 400);
       }
 
+      const parsedCondition = data.commercialCondition
+        ? parseCommercialConditionInput(data.commercialCondition)
+        : undefined;
+
       const result = await db.client.update({
         where: { id },
         data: {
           ...data.client,
-          commercialCondition: data.commercialCondition
+          commercialCondition: parsedCondition
             ? {
-                update: data.commercialCondition,
+                update: parsedCondition,
               }
             : undefined,
         },
         include: { commercialCondition: true },
       });
 
-      return result;
+      return {
+        ...result,
+        commercialCondition: result.commercialCondition
+          ? formatCommercialConditionResponse(result.commercialCondition)
+          : null,
+      };
     },
 
     async delete(id: string) {
@@ -105,7 +175,12 @@ export function clientsService() {
         throw new AppError("Cliente não encontrado.", 404);
       }
 
-      return client;
+      return {
+        ...client,
+        commercialCondition: client.commercialCondition
+          ? formatCommercialConditionResponse(client.commercialCondition)
+          : null,
+      };
     },
 
     async listAllSimplified(input: ListClientsDTO = {}) {
@@ -282,7 +357,12 @@ export function clientsService() {
       ]);
 
       return {
-        data: clients,
+        data: clients.map((client) => ({
+          ...client,
+          commercialCondition: client.commercialCondition
+            ? formatCommercialConditionResponse(client.commercialCondition)
+            : null,
+        })),
         count,
       };
     },

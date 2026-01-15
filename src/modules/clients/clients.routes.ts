@@ -4,6 +4,7 @@ import { authPlugin } from "../../hooks/auth.hook";
 import { blocksRoutes } from "./blocks/blocks.routes";
 import {
   ClientMutateSchema,
+  CommercialConditionResponseSchema,
   CommercialConditionSchema,
   ListClientsSchema,
 } from "./clients.schema";
@@ -128,8 +129,7 @@ export const clientsRoutes = new Elysia({
                         name: t.String(),
                       }),
                     ),
-                    // TODO: discover how typebox can handle Decimals fine.
-                    commercialCondition: t.Nullable(t.Object({})),
+                    commercialCondition: t.Nullable(CommercialConditionResponseSchema),
                   }),
                 ]),
               ),
@@ -146,7 +146,7 @@ export const clientsRoutes = new Elysia({
               branch: t.Any(),
               region: t.Nullable(t.Any()),
               group: t.Nullable(t.Any()),
-              commercialCondition: t.Nullable(t.Any()),
+              commercialCondition: t.Nullable(CommercialConditionResponseSchema),
             }),
           ]),
         },
@@ -163,7 +163,7 @@ export const clientsRoutes = new Elysia({
             200: t.Composite([
               ClientResponse,
               t.Object({
-                commercialCondition: t.Nullable(t.Any()),
+                commercialCondition: t.Nullable(CommercialConditionResponseSchema),
               }),
             ]),
           },
