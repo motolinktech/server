@@ -186,6 +186,20 @@ Total endpoints documented: 58
 - GET `/api/work-shift-slots/group/:groupId` — Auth + branchCheck
 - PUT `/api/work-shift-slots/:id` — Auth + branchCheck
 
+Additional endpoints and notes:
+- POST `/api/work-shift-slots/accept-invite/:token` — Public (no auth)
+  - Params: `token` (string)
+  - Response: `WorkShiftSlot` (accepted invite)
+- POST `/api/work-shift-slots/:id/send-invite` — Auth + branchCheck
+  - Body: `SendInviteSchema` — `{ deliverymanId: string, expiresInHours?: number }`
+  - Response: `{ inviteToken?: string, inviteSentAt?: Date, inviteExpiresAt?: Date }`
+- POST `/api/work-shift-slots/:id/check-in` — Auth + branchCheck
+  - Body: `CheckInOutSchema` — optional `location: { lat, lng }`
+- POST `/api/work-shift-slots/:id/check-out` — Auth + branchCheck
+- POST `/api/work-shift-slots/:id/mark-absent` — Auth + branchCheck
+  - Body: `MarkAbsentSchema` — optional `reason`
+- POST `/api/work-shift-slots/:id/connect-tracking` — Auth + branchCheck
+
 **Payment Requests** (`/api/payment-requests`)
 - POST `/api/payment-requests` — Auth + branchCheck
 - GET `/api/payment-requests` — Auth + branchCheck
@@ -199,6 +213,10 @@ Total endpoints documented: 58
 - GET `/api/planning/:id` — Auth + branchCheck
 - PUT `/api/planning/:id` — Auth + branchCheck
 - DELETE `/api/planning/:id` — Auth + branchCheck
+
+Notes on `Planning` payloads:
+- `PlanningMutateSchema` fields: `clientId: string`, `branchId: string`, `plannedDate: string (ISO)`, `plannedCount: number`, `period: 'diurno' | 'noturno'`
+- Unique constraint in DB: `@@unique([clientId, plannedDate, period])` — creating duplicates will raise AppError/validation from service layer.
 
 ---
 
