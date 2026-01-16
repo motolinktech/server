@@ -1,4 +1,7 @@
-import { Prisma, type CommercialCondition } from "../../../generated/prisma/client";
+import {
+  type CommercialCondition,
+  Prisma,
+} from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { AppError } from "../../utils/appError";
 import type {
@@ -82,7 +85,8 @@ export function clientsService() {
       });
 
       if (commercialCondition) {
-        const parsedCondition = parseCommercialConditionInput(commercialCondition);
+        const parsedCondition =
+          parseCommercialConditionInput(commercialCondition);
         await db.commercialCondition.create({
           data: {
             ...parsedCondition,

@@ -48,7 +48,12 @@ export const UserMutateSchema = t.Object({
       error: "Data de nascimento inválida.",
     }),
   ),
-  documents: t.Optional(t.Array(UserDocumentSchema, { default: [] })),
+  document: t.Nullable(
+    t.String({
+      error: "Documento é obrigatório.",
+    }),
+  ),
+  files: t.Optional(t.Array(UserDocumentSchema, { default: [] })),
 });
 
 export const UserPasswordChangeSchema = t.Object({
@@ -77,9 +82,9 @@ export const UserDetailedDocumentSchema = t.Object({
 });
 
 export const UserDetailed = t.Composite([
-  t.Omit(UserPlain, ["documents"]),
+  t.Omit(UserPlain, ["files"]),
   t.Object({
-    documents: t.Array(UserDetailedDocumentSchema),
+    files: t.Optional(t.Array(UserDetailedDocumentSchema, { default: [] })),
   }),
 ]);
 

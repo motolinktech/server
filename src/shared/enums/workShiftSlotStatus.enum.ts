@@ -43,7 +43,7 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 
 export function isValidStatusTransition(
   fromStatus: string,
-  toStatus: string
+  toStatus: string,
 ): boolean {
   const validTargets = VALID_STATUS_TRANSITIONS[fromStatus];
   if (!validTargets) return false;

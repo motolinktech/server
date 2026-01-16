@@ -129,7 +129,9 @@ export const clientsRoutes = new Elysia({
                         name: t.String(),
                       }),
                     ),
-                    commercialCondition: t.Nullable(CommercialConditionResponseSchema),
+                    commercialCondition: t.Nullable(
+                      CommercialConditionResponseSchema,
+                    ),
                   }),
                 ]),
               ),
@@ -146,7 +148,9 @@ export const clientsRoutes = new Elysia({
               branch: t.Any(),
               region: t.Nullable(t.Any()),
               group: t.Nullable(t.Any()),
-              commercialCondition: t.Nullable(CommercialConditionResponseSchema),
+              commercialCondition: t.Nullable(
+                CommercialConditionResponseSchema,
+              ),
             }),
           ]),
         },
@@ -163,7 +167,9 @@ export const clientsRoutes = new Elysia({
             200: t.Composite([
               ClientResponse,
               t.Object({
-                commercialCondition: t.Nullable(CommercialConditionResponseSchema),
+                commercialCondition: t.Nullable(
+                  CommercialConditionResponseSchema,
+                ),
               }),
             ]),
           },

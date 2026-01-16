@@ -5,10 +5,8 @@ import { workShiftSlotStatusEnum } from "../../shared/enums/workShiftSlotStatus.
 export const WorkShiftSlotMutateSchema = t.Object({
   id: t.Optional(t.String()),
   deliverymanId: t.Optional(t.String()),
-  clientId: t.String(),
-  status: t.Optional(
-    t.String({ default: workShiftSlotStatusEnum.OPEN })
-  ),
+  clientId: t.Optional(t.String()),
+  status: t.Optional(t.String({ default: workShiftSlotStatusEnum.OPEN })),
   contractType: t.String(),
   shiftDate: t.String(),
   startTime: t.String(),
@@ -49,7 +47,7 @@ export const SendInviteSchema = t.Object({
       minimum: 1,
       maximum: 72,
       error: "Tempo de expiração deve ser entre 1 e 72 horas",
-    })
+    }),
   ),
 });
 
@@ -58,7 +56,7 @@ export const CheckInOutSchema = t.Object({
     t.Object({
       lat: t.Number(),
       lng: t.Number(),
-    })
+    }),
   ),
 });
 

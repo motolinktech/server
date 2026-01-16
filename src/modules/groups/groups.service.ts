@@ -53,7 +53,7 @@ export function groupsService() {
         where: { id },
         include: {
           clients: true,
-        }
+        },
       });
 
       if (!group) {

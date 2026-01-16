@@ -65,7 +65,14 @@ export const usersRoutes = new Elysia({
           200: t.Omit(UserPlain, ["password"]),
         },
       })
-      .delete("/:id", ({ params }) => service.delete(params.id)),
+      .delete("/:id", ({ params }) => service.delete(params.id))
+      .put("/:id", ({ params, body }) => service.update(params.id, body), {
+        body: t.Partial(t.Omit(UserMutateSchema, ["id", "password"])),
+        response: {
+          200: t.Omit(UserPlain, ["password"]),
+        },
+        branchCheck: true,
+      }),
   )
   .post(
     "/:id/change-password",

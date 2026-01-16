@@ -2,7 +2,7 @@
   "name": "server",
   "version": "1.0.50",
   "scripts": {
-    "dev": "bun run --watch src/server.ts",
+    "dev": "bun --watch src/server.ts",
     "lint": "biome check --write src",
     "format": "biome format --write src",
     "start": "bun run server",

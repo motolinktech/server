@@ -27,7 +27,7 @@ model User {
   permissions        String[]            @default([])
   branches           String[]            @default([])
   birthDate          DateTime?
-  documents          Json[]              @default([])
+  files              Json[]              @default([])
   isDeleted          Boolean             @default(false)
   updatedAt          DateTime            @updatedAt
   createdAt          DateTime            @default(now())

@@ -10,9 +10,12 @@ export const PlanningMutateSchema = t.Object({
     minimum: 0,
     error: "Quantidade deve ser maior ou igual a 0",
   }),
-  period: t.Union([t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)], {
-    error: "Período é obrigatório (diurno ou noturno)",
-  }),
+  period: t.Union(
+    [t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)],
+    {
+      error: "Período é obrigatório (diurno ou noturno)",
+    },
+  ),
 });
 
 export const ListPlanningsSchema = t.Object({
@@ -23,7 +26,7 @@ export const ListPlanningsSchema = t.Object({
   startDate: t.Optional(t.String()),
   endDate: t.Optional(t.String()),
   period: t.Optional(
-    t.Union([t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)])
+    t.Union([t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)]),
   ),
 });
 
