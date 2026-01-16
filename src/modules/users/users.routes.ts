@@ -1,5 +1,5 @@
 import Elysia, { t } from "elysia";
-import { User } from "../../../generated/prismabox/User";
+import { UserPlain } from "../../../generated/prismabox/User";
 import { authPlugin } from "../../hooks/auth.hook";
 import {
   UserDetailed,
@@ -22,11 +22,7 @@ export const usersRoutes = new Elysia({
       .post("/", ({ body }) => service.create({ ...body }), {
         body: t.Omit(UserMutateSchema, ["id"]),
         response: {
-          200: t.Omit(User, [
-            "password",
-            "verificationTokens",
-            "historyTraces",
-          ]),
+          200: t.Omit(UserPlain, ["password"]),
         },
         branchCheck: true,
       })
@@ -66,11 +62,7 @@ export const usersRoutes = new Elysia({
       })
       .get("/me", ({ user }) => service.getById(user.id), {
         response: {
-          200: t.Omit(User, [
-            "password",
-            "verificationTokens",
-            "historyTraces",
-          ]),
+          200: t.Omit(UserPlain, ["password"]),
         },
       })
       .delete("/:id", ({ params }) => service.delete(params.id)),

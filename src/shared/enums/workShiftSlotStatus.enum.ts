@@ -6,6 +6,7 @@ export const workShiftSlotStatusEnum = {
   COMPLETED: "COMPLETED",
   ABSENT: "ABSENT",
   CANCELLED: "CANCELLED",
+  REJECTED: "REJECTED",
 } as const;
 
 export type WorkShiftSlotStatusType =
@@ -23,6 +24,7 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
     workShiftSlotStatusEnum.CONFIRMED,
     workShiftSlotStatusEnum.OPEN,
     workShiftSlotStatusEnum.CANCELLED,
+    workShiftSlotStatusEnum.REJECTED,
   ],
   [workShiftSlotStatusEnum.CONFIRMED]: [
     workShiftSlotStatusEnum.CHECKED_IN,
@@ -36,6 +38,7 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   [workShiftSlotStatusEnum.COMPLETED]: [],
   [workShiftSlotStatusEnum.ABSENT]: [],
   [workShiftSlotStatusEnum.CANCELLED]: [],
+  [workShiftSlotStatusEnum.REJECTED]: [],
 };
 
 export function isValidStatusTransition(

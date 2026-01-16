@@ -7,6 +7,11 @@ export const BranchMutateSchema = t.Object({
     maxLength: 255,
     error: "Nome inválido.",
   }),
+  code: t.String({
+    minLength: 1,
+    maxLength: 50,
+    error: "Código é obrigatório.",
+  }),
   address: t.Optional(
     t.String({
       minLength: 3,

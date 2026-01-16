@@ -2,6 +2,8 @@
 
 This document analyzes the current state of the system based on the `roadmap.md` file, evaluating the implementation of each requirement in the `src` and `prisma` directories.
 
+**Last Updated:** 2026-01-16
+
 ---
 
 ## 1. Visão do sistema
@@ -28,7 +30,7 @@ This document analyzes the current state of the system based on the `roadmap.md`
   - ⚠️ Contato (nome/telefone/WhatsApp/email). **Note:** Email field is missing from the `Client` model.
   - ✅ Valor do motoboy (diária, por rota, etc.). **Note:** Implemented via `CommercialCondition` model.
   - ✅ Quantidade mínima de entregadores por turno/dia. **Note:** Implemented via `Planning` model.
-  - ❌ Quantidade de bags (total / em uso / disponíveis).
+  - ⚠️ Quantidade de bags (total / em uso / disponíveis). **Note:** `bagsAllocated` and `bagsStatus` exist in `CommercialCondition`, but "em uso / disponíveis" tracking is not implemented.
   - ✅ Regras internas (observações).
 - **Telas (Endpoints):**
   - ✅ Lista de lojas (filtro por cidade/status).
@@ -44,7 +46,7 @@ This document analyzes the current state of the system based on the `roadmap.md`
   - ✅ Documentos (CNH, doc moto, etc.). **Note:** A `files: String[]` field exists for this.
   - ✅ PIX (tipo + chave).
   - ⚠️ Status: ativo / suspenso / bloqueado. **Note:** `isBlocked` and `isDeleted` exist, but a specific "suspenso" status is missing.
-  - ⚠️ Blacklist. **Note:** A per-client blacklist (`ClientBlock`) is implemented, but not a global one for the deliveryman entity itself. `isBlocked` can serve this purpose.
+  - ⚠️ Blacklist. **Note:** A per-client blacklist (`ClientBlock`) is implemented, plus global `isBlocked` flag on Deliveryman.
 - **Telas (Endpoints):**
   - ✅ Lista de entregadores (ativos/bloqueados).
   - ✅ Cadastro/edição + upload docs.
@@ -53,12 +55,12 @@ This document analyzes the current state of the system based on the `roadmap.md`
 ### M3 — Escala por Loja (semanal/mensal)
 - **Funcionalidades:**
   - ✅ Criar escala por loja com dia/turno, quantidade, entregadores.
-  - ✅ Suporte para freelancers (via `contractType`).
+  - ✅ Suporte para freelancers (via `contractType` e `isFreelancer` flag).
 - **Visualização:**
   - ✅ Semana (grid). **Note:** Backend filtering by week is implemented.
   - ✅ Mês (calendário). **Note:** Backend filtering by month is implemented.
 - **Status da vaga:**
-  - ⚠️ Aberta / Reservada / Confirmada / Cancelada / No-show. **Note:** The `WorkShiftSlot` model has a `status` field, but the detailed business logic and flow for these specific states are not implemented.
+  - ✅ Aberta / Reservada / Confirmada / Cancelada / No-show. **Note:** Full status flow implemented: `OPEN`, `INVITED`, `CONFIRMED`, `CHECKED_IN`, `COMPLETED`, `ABSENT`, `CANCELLED`, `REJECTED`. Status transitions are validated via `VALID_STATUS_TRANSITIONS` map.
 - **Disparos automáticos:**
   - ❌ Confirmação da escala (WhatsApp).
   - ❌ Vaga aberta (broadcast / grupo / lista).
@@ -70,12 +72,12 @@ This document analyzes the current state of the system based on the `roadmap.md`
 - **Telas (Endpoints):**
   - ✅ "Montar escala" (via `POST /work-shift-slots`).
   - ✅ Visão calendário (via `GET /work-shift-slots` with filters).
-  - ⚠️ Central de vagas abertas. **Note:** Can be achieved by filtering, but depends on the full status implementation.
+  - ✅ Central de vagas abertas. **Note:** Achievable by filtering by status `OPEN`.
   - ❌ Relatórios (por loja/período).
 - **Regras importantes:**
-  - ❌ Não permitir escalar entregador “blacklist/bloqueado”.
+  - ✅ Não permitir escalar entregador "blacklist/bloqueado". **Note:** Implemented in `workShiftSlots.service.ts` - validates `isBlocked` and `ClientBlock` before invite.
   - ❌ Evitar duplicidade no mesmo horário (conflito de turno).
-  - ❌ Log de alterações (quem mudou, quando, antes/depois). **Note:** `HistoryTrace` module is not used for `WorkShiftSlots`.
+  - ⚠️ Log de alterações (quem mudou, quando, antes/depois). **Note:** Uses inline `logs: Json[]` field instead of `HistoryTrace`. Stores action events but without full user audit trail.
 
 ### M4 — Agenda Inteligente (contexto operacional)
 - **Itens de agenda:**
@@ -98,21 +100,21 @@ This document analyzes the current state of the system based on the `roadmap.md`
   - ✅ Status + blacklist (mesma lógica dos fixos).
   - ❌ Termo/aceite (check no app/whats).
 - **Integração:**
-  - ✅ Ao cadastrar/aprovar freelancer → habilita para “vagas abertas”.
+  - ✅ Ao cadastrar/aprovar freelancer → habilita para "vagas abertas".
   - ✅ Freelancer entra no fluxo de pagamento automaticamente.
 
 ### M6 — Fluxo de Pagamento (freelancer e/ou fixo)
 - **Fluxo sugerido (status):**
   - ✅ Escalado.
   - ❌ Confirmado via WhatsApp.
-  - ❌ Check-in (“CHEGUEI”).
-  - ❌ Produção do dia: qtd entregas/rotas.
-  - ❌ Check-out (entregador confirma final).
-  - ✅ Conferência operacional / Aprovado financeiro. **Note:** Implemented via `PaymentRequest.status` enum.
+  - ✅ Check-in ("CHEGUEI"). **Note:** Implemented via `checkInAt` field and `CHECKED_IN` status in `WorkShiftSlot`.
+  - ✅ Produção do dia: qtd entregas/rotas. **Note:** Implemented via `deliverymanAmountDay` and `deliverymanAmountNight` fields.
+  - ✅ Check-out (entregador confirma final). **Note:** Implemented via `checkOutAt` field and `COMPLETED` status.
+  - ✅ Conferência operacional / Aprovado financeiro. **Note:** Implemented via `PaymentRequest.status` enum (`NEW`, `ANALYZING`, `REQUESTED`, `PAID`).
   - ❌ Pagamento enviado ao banco.
   - ⚠️ Pago / comprovante. **Note:** Status `PAID` exists, but no field for the receipt.
 - **Telas (Endpoints):**
-  - ✅ Painel “Pagamentos pendentes”.
+  - ✅ Painel "Pagamentos pendentes".
   - ✅ Detalhe do turno/dia.
   - ❌ Aprovação em lote.
   - ❌ Exportação/integração bancária (arquivo ou API).
@@ -120,7 +122,7 @@ This document analyzes the current state of the system based on the `roadmap.md`
 - **Regras:**
   - ❌ Pagamento só libera com: confirmação + checkout.
   - ❌ Ajustes (vale/desconto/ocorrência) registrados com motivo.
-  - ⚠️ Auditoria: log completo. **Note:** A `logs` field exists on the models, but `HistoryTrace` is not used.
+  - ⚠️ Auditoria: log completo. **Note:** `logs: Json[]` field exists on PaymentRequest, but `HistoryTrace` is not used.
 
 ### 3. Relatórios (mínimo viável)
 - ❌ Cobertura de escala por loja (necessário x atendido).
@@ -134,31 +136,69 @@ This document analyzes the current state of the system based on the `roadmap.md`
 ## Resumo do Progresso
 
 - **Total de Itens Avaliados:** 68
-- **Implementado:** 29 (42.6%)
-- **Parcial:** 8 (11.8%)
-- **Não Implementado:** 31 (45.6%)
+- **Implementado:** 36 (52.9%)
+- **Parcial:** 11 (16.2%)
+- **Não Implementado:** 21 (30.9%)
 
-### Progresso Geral: 48.5%
-*(Calculado como (Implementado * 1) + (Parcial * 0.5) / Total)*
+### Progresso Geral: 61.0%
+*(Calculado como ((Implementado * 1) + (Parcial * 0.5)) / Total)*
+
+---
+
+## Mudanças desde a última revisão
+
+| Item | Status Anterior | Status Atual | Observação |
+|------|-----------------|--------------|------------|
+| M3 - Status da vaga | ⚠️ Parcial | ✅ Implementado | Full status flow with 8 states and transitions |
+| M3 - Central de vagas | ⚠️ Parcial | ✅ Implementado | Now fully achievable with status filtering |
+| M3 - Bloqueio entregador | ❌ Não impl. | ✅ Implementado | Validates `isBlocked` + `ClientBlock` |
+| M3 - Log alterações | ❌ Não impl. | ⚠️ Parcial | Uses inline logs, not HistoryTrace |
+| M1 - Bags | ❌ Não impl. | ⚠️ Parcial | `bagsAllocated`/`bagsStatus` in CommercialCondition |
+| M6 - Check-in | ❌ Não impl. | ✅ Implementado | `checkInAt` field + `CHECKED_IN` status |
+| M6 - Check-out | ❌ Não impl. | ✅ Implementado | `checkOutAt` field + `COMPLETED` status |
+| M6 - Produção do dia | ❌ Não impl. | ✅ Implementado | `deliverymanAmountDay/Night` fields |
 
 ---
 
 ## Próximos Passos Sugeridos
 
-Com base na análise e no plano de MVP, sugiro focar nos seguintes pontos para completar a **Fase 1 e 2**:
+Com base na análise atualizada, sugiro focar nos seguintes pontos para completar o MVP:
 
-1.  **Finalizar M3 (Escala):** A funcionalidade de escala é o coração do sistema.
-    *   **Implementar as regras de negócio críticas:** Adicionar validações para **não escalar entregadores bloqueados** e para **evitar conflitos de horário**. Isso é crucial para a integridade da operação.
-    *   **Detalhar o status da vaga:** Expandir o campo `status` em `WorkShiftSlot` para incluir todo o fluxo (`Aberta`, `Reservada`, `Confirmada`, `Cancelada`, `No-show`) e implementar a lógica de transição entre eles.
-    *   **Ativar `HistoryTrace` para Escalas:** Integrar o serviço de log de auditoria nas operações de criação e edição de `WorkShiftSlot` para rastreabilidade.
+### 1. Evitar Conflitos de Turno (Alta Prioridade)
+A única regra de negócio crítica faltante em M3:
+- **Implementar validação de conflito de horário:** Verificar se o entregador já está escalado em outro turno no mesmo horário antes de permitir nova alocação.
+- **Arquivo:** `src/modules/workShiftSlots/workShiftSlots.service.ts`
 
-2.  **Completar M6 (Fluxo de Pagamento):** Conectar a escala ao pagamento é o próximo passo lógico.
-    *   **Adicionar Campos de Check-in/Check-out:** Incluir campos de data/hora para check-in e check-out no modelo `WorkShiftSlot` para registrar o início e fim do trabalho.
-    *   **Implementar Lógica de Liberação de Pagamento:** Criar a regra no serviço `paymentRequestsService` para que um pagamento só possa ser processado (ex: mudar status para `ANALYZING`) se o `WorkShiftSlot` correspondente tiver um check-out registrado.
-    *   **Adicionar Campo de "Produção do Dia":** Permitir que o operacional ou lojista insira dados de produção (ex: `qtd_entregas`) no `WorkShiftSlot`, que servirá de base para o cálculo do pagamento.
+### 2. Integrar HistoryTrace para WorkShiftSlots (Média Prioridade)
+Melhorar a auditoria atual:
+- **Migrar de logs inline para HistoryTrace:** Integrar o serviço de auditoria nas operações de `WorkShiftSlot` para ter rastreabilidade completa com identificação do usuário.
+- **Arquivo:** `src/modules/workShiftSlots/workShiftSlots.service.ts`
 
-3.  **Melhorar Perfis de Usuário:**
-    *   **Definir as Roles:** Adicionar as roles faltantes (`Operacional`, `Financeiro`, etc.) no enum `userRoles.enum.ts`.
-    *   **Refinar Permissões:** Começar a aplicar uma lógica de permissões mais granular nos endpoints, em vez de checar apenas se o usuário é `ADMIN`.
+### 3. Regras de Liberação de Pagamento (Média Prioridade)
+Conectar o fluxo de escala ao pagamento:
+- **Validar checkout antes de processar pagamento:** Implementar regra no `paymentRequestsService` para só permitir mudança de status para `ANALYZING` se o `WorkShiftSlot` tiver `checkOutAt` preenchido.
+- **Arquivo:** `src/modules/paymentRequests/paymentRequests.service.ts`
 
-Ao focar nesses três pilares, você solidifica o core funcional do sistema, que é criar uma escala, gerenciar sua execução e processar o pagamento correspondente de forma rastreável, abrindo caminho para as fases de dashboards, relatórios e automações.
+### 4. Dashboard de Escala (Baixa Prioridade - Fase 2)
+Criar endpoints de agregação:
+- Vagas abertas x fechadas por período
+- % de confirmação por cliente/região
+- Contagem de faltas/no-show
+
+### 5. Melhorar Perfis de Usuário (Fase 3)
+- **Definir as Roles:** Adicionar as roles faltantes (`OPERACIONAL`, `FINANCEIRO`, `LOJISTA`) no enum `userRoles.enum.ts`.
+- **Implementar middleware de permissões:** Aplicar lógica de permissões nos endpoints baseado na role do usuário.
+
+---
+
+## Arquivos Principais de Referência
+
+| Funcionalidade | Arquivo |
+|----------------|---------|
+| Schema do banco | `prisma/schema.prisma` |
+| Status WorkShift | `src/shared/enums/workShiftSlotStatus.enum.ts` |
+| Service WorkShift | `src/modules/workShiftSlots/workShiftSlots.service.ts` |
+| Status Pagamento | `src/shared/enums/paymentRequest.enum.ts` |
+| Service Pagamento | `src/modules/paymentRequests/paymentRequests.service.ts` |
+| Service Auditoria | `src/modules/historyTraces/historyTraces.service.ts` |
+| Roles de Usuário | `src/shared/enums/userRoles.enum.ts` |

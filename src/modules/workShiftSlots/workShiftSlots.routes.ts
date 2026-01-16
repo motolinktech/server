@@ -12,7 +12,19 @@ import { workShiftSlotsService } from "./workShiftSlots.service";
 
 const service = workShiftSlotsService();
 
-const WorkShiftSlotResponse = t.Omit(WorkShiftSlot, ["deliveryman", "client"]);
+const WorkShiftSlotResponse = t.Composite([
+  t.Omit(WorkShiftSlot, [
+    "deliveryman",
+    "client",
+    "paymentRequests",
+    "deliverymanAmountDay",
+    "deliverymanAmountNight",
+  ]),
+  t.Object({
+    deliverymanAmountDay: t.String(),
+    deliverymanAmountNight: t.String(),
+  }),
+]);
 
 export const workShiftSlotsRoutes = new Elysia({
   prefix: "/work-shift-slots",
@@ -21,7 +33,6 @@ export const workShiftSlotsRoutes = new Elysia({
   },
 })
   .use(authPlugin)
-  // Public endpoint for accepting invites (no auth required)
   .post(
     "/accept-invite/:token",
     ({ params }) => service.acceptInvite(params.token),
@@ -32,7 +43,7 @@ export const workShiftSlotsRoutes = new Elysia({
       response: {
         200: WorkShiftSlotResponse,
       },
-    }
+    },
   )
   .guard({ isAuth: true, branchCheck: true }, (app) =>
     app
@@ -80,8 +91,25 @@ export const workShiftSlotsRoutes = new Elysia({
       })
       .get(
         "/group/:groupId",
-        ({ params }) => service.getByGroup(params.groupId),
+        async ({ params }) => {
+          const result = await service.getByGroup(params.groupId);
+          return Object.fromEntries(
+            Object.entries(result).map(([key, arr]) => [
+              key,
+              arr.map((item) => ({
+                ...item,
+                deliverymanAmountDay:
+                  (item as any).deliverymanAmountDay?.toString?.() ?? "0",
+                deliverymanAmountNight:
+                  (item as any).deliverymanAmountNight?.toString?.() ?? "0",
+              })),
+            ]),
+          );
+        },
         {
+          params: t.Object({
+            groupId: t.String(),
+          }),
           response: {
             200: t.Record(
               t.String(),
@@ -124,7 +152,7 @@ export const workShiftSlotsRoutes = new Elysia({
               inviteExpiresAt: t.Nullable(t.Date()),
             }),
           },
-        }
+        },
       )
       .post(
         "/:id/check-in",
@@ -134,7 +162,7 @@ export const workShiftSlotsRoutes = new Elysia({
           response: {
             200: WorkShiftSlotResponse,
           },
-        }
+        },
       )
       .post(
         "/:id/check-out",
@@ -144,7 +172,7 @@ export const workShiftSlotsRoutes = new Elysia({
           response: {
             200: WorkShiftSlotResponse,
           },
-        }
+        },
       )
       .post(
         "/:id/mark-absent",
@@ -154,7 +182,7 @@ export const workShiftSlotsRoutes = new Elysia({
           response: {
             200: WorkShiftSlotResponse,
           },
-        }
+        },
       )
       .post(
         "/:id/connect-tracking",
@@ -163,6 +191,6 @@ export const workShiftSlotsRoutes = new Elysia({
           response: {
             200: WorkShiftSlotResponse,
           },
-        }
+        },
       ),
   );

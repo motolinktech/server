@@ -1,6 +1,6 @@
 export const periodEnum = {
-  DIURNO: "diurno",
-  NOTURNO: "noturno",
+  DAYTIME: "daytime",
+  NIGHTTIME: "nighttime",
 } as const;
 
 export type PeriodType = (typeof periodEnum)[keyof typeof periodEnum];

@@ -13,9 +13,12 @@ export const WorkShiftSlotMutateSchema = t.Object({
   shiftDate: t.String(),
   startTime: t.String(),
   endTime: t.String(),
-  period: t.Union(
-    [t.Literal(periodEnum.DIURNO), t.Literal(periodEnum.NOTURNO)],
-    { error: "Período é obrigatório (diurno ou noturno)" }
+  period: t.Array(
+    t.Union([t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)]),
+    {
+      error: "Período é obrigatório (daytime ou nighttime)",
+      default: [periodEnum.DAYTIME],
+    },
   ),
   auditStatus: t.String(),
   isFreelancer: t.Optional(t.Boolean({ default: false })),
@@ -29,7 +32,9 @@ export const ListWorkShiftSlotsSchema = t.Object({
   deliverymanId: t.Optional(t.String()),
   status: t.Optional(t.String()),
   period: t.Optional(
-    t.Union([t.Literal(periodEnum.DIURNO), t.Literal(periodEnum.NOTURNO)])
+    t.Array(
+      t.Union([t.Literal(periodEnum.DAYTIME), t.Literal(periodEnum.NIGHTTIME)]),
+    ),
   ),
   isFreelancer: t.Optional(t.Boolean()),
   month: t.Optional(t.Number()),

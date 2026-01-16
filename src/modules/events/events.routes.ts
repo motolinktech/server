@@ -1,5 +1,5 @@
 import Elysia, { t } from "elysia";
-import { Event } from "../../../generated/prismabox/Event";
+import { EventPlain } from "../../../generated/prismabox/Event";
 import { authPlugin } from "../../hooks/auth.hook";
 import {
   EventDetailed,
@@ -10,7 +10,7 @@ import { eventsService } from "./events.service";
 
 const service = eventsService();
 
-const EventResponse = t.Omit(Event, ["createdById"]);
+const EventResponse = EventPlain;
 
 export const eventsRoutes = new Elysia({
   prefix: "/events",

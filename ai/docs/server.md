@@ -43,8 +43,30 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - relations: `workShiftSlots`, `blocks`, `paymentRequests`
 
 - `WorkShiftSlot`
-  - id, deliverymanId?, clientId, status, contractType, shiftDate, startTime, endTime, logs
-  - relations: `paymentRequests`
+  - id: String (uuid(7))
+  - deliverymanId: String? (nullable)
+  - clientId: String
+  - status: String (OPEN | INVITED | CONFIRMED | CHECKED_IN | COMPLETED | ABSENT | CANCELLED)
+  - contractType: String
+  - shiftDate: DateTime
+  - startTime: DateTime
+  - endTime: DateTime
+  - period: String[] (default ["daytime"]) — values: `daytime` | `nighttime`
+  - auditStatus: String
+  - logs: Json[]
+  - checkInAt: DateTime?
+  - checkOutAt: DateTime?
+  - isFreelancer: Boolean (default false)
+  - inviteSentAt: DateTime?
+  - inviteToken: String? (unique)
+  - inviteExpiresAt: DateTime?
+  - trackingConnected: Boolean (default false)
+  - trackingConnectedAt: DateTime?
+  - deliverymanAmountDay: Decimal(16,2) (default 0) — payment amount for daytime shifts
+  - deliverymanAmountNight: Decimal(16,2) (default 0) — payment amount for nighttime shifts
+  - updatedAt, createdAt
+  - relations: `deliveryman`, `client`, `paymentRequests`
+  - indexes: [clientId, shiftDate], [deliverymanId, shiftDate], [inviteToken]
 
 - `PaymentRequest`
   - id, workShiftSlotId, deliverymanId, amount (Decimal 16,2), status
@@ -180,25 +202,143 @@ Total endpoints documented: 58
 - DELETE `/api/clients/:clientId/blocks/:blockId` — Auth + branchCheck
 
 **Work Shift Slots** (`/api/work-shift-slots`)
-- POST `/api/work-shift-slots` — Auth + branchCheck
-- GET `/api/work-shift-slots` — Auth + branchCheck
-- GET `/api/work-shift-slots/:id` — Auth + branchCheck
-- GET `/api/work-shift-slots/group/:groupId` — Auth + branchCheck
-- PUT `/api/work-shift-slots/:id` — Auth + branchCheck
+- Summary: Manage scheduled delivery shifts (create, list, invite deliverymen, check-in/out, mark absent, connect tracking).
+- Auth: Most routes require `isAuth` and `branchCheck` via `authPlugin`. The invite-accept endpoint is public.
 
-Additional endpoints and notes:
-- POST `/api/work-shift-slots/accept-invite/:token` — Public (no auth)
+Response format note: All responses use `WorkShiftSlotResponse` which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings.
+
+Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `COMPLETED` | `ABSENT` | `CANCELLED`
+
+Valid status transitions:
+- `OPEN` → `INVITED`, `CONFIRMED`, `CANCELLED`
+- `INVITED` → `CONFIRMED`, `OPEN`, `CANCELLED`
+- `CONFIRMED` → `CHECKED_IN`, `ABSENT`, `CANCELLED`
+- `CHECKED_IN` → `COMPLETED`, `ABSENT`
+- `COMPLETED` → (terminal)
+- `ABSENT` → (terminal)
+- `CANCELLED` → (terminal)
+
+Endpoints (detailed):
+- POST `/api/work-shift-slots`
+  - Description: Create a new work shift slot for a client (optionally assign a deliveryman).
+  - Auth: `isAuth`, `branchCheck`
+  - Body (request): `WorkShiftSlotMutateSchema`
+    - `clientId` (string) — required
+    - `deliverymanId` (string) — optional
+    - `contractType` (string) — required
+    - `shiftDate` (string, ISO) — required
+    - `startTime` (string, ISO) — required
+    - `endTime` (string, ISO) — required
+    - `period` (array of `daytime` | `nighttime`) — required, error: "Período é obrigatório (daytime ou nighttime)", default: `["daytime"]`
+    - `auditStatus` (string) — required
+    - `status` (string) — optional, defaults to `OPEN`
+    - `isFreelancer` (boolean) — optional, default: false
+    - `logs` (array) — optional
+  - Response 200: `WorkShiftSlotResponse`. Example:
+    ```json
+    {
+      "id": "01JHRZ5K8MNPQRS",
+      "clientId": "01JHRZ5K8MABCDE",
+      "deliverymanId": null,
+      "status": "OPEN",
+      "contractType": "CLT",
+      "shiftDate": "2026-01-16T00:00:00.000Z",
+      "startTime": "2026-01-16T08:00:00.000Z",
+      "endTime": "2026-01-16T12:00:00.000Z",
+      "period": ["daytime"],
+      "auditStatus": "PENDING",
+      "isFreelancer": false,
+      "logs": [],
+      "deliverymanAmountDay": "150.00",
+      "deliverymanAmountNight": "0"
+    }
+    ```
+
+- GET `/api/work-shift-slots`
+  - Description: List work shift slots with pagination and filters.
+  - Auth: `isAuth`, `branchCheck`
+  - Query params (`ListWorkShiftSlotsSchema`):
+    - `page` (number) — optional, default 1
+    - `limit` (number) — optional, default PAGE_SIZE env or 20
+    - `clientId` (string) — optional
+    - `deliverymanId` (string) — optional
+    - `status` (string) — optional
+    - `period` (array of `daytime` | `nighttime`) — optional, filters slots containing any of the provided periods (uses Prisma `hasSome`)
+    - `isFreelancer` (boolean) — optional
+    - `month` (number) — optional, narrows `shiftDate` to that month
+    - `week` (number) — optional, narrows `shiftDate` to that week
+  - Response 200: `{ data: WorkShiftSlotResponse[] (with deliveryman{ id,name } + client{ id,name }), count: number }`
+  - Example query: `?page=1&limit=20&month=1&period[]=daytime`
+
+- GET `/api/work-shift-slots/:id`
+  - Description: Retrieve a single slot with `deliveryman` and `client` relations.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Response 200: Full `WorkShiftSlot` with `deliveryman` (nullable) and `client` objects.
+
+- GET `/api/work-shift-slots/group/:groupId`
+  - Description: Returns work shift slots grouped by client name for a given `groupId` (within a default date range).
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `groupId` (string)
+  - Response 200: `Record<string, WorkShiftSlotResponse[]>` keyed by client name. Each slot includes `deliveryman` (nullable id/name).
+
+- PUT `/api/work-shift-slots/:id`
+  - Description: Update a slot. Status transitions are validated server-side.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Body: same as create (`WorkShiftSlotMutateSchema`, `id` omitted)
+  - Important: Invalid status transitions will return 400 with message like `Transição de status inválida: OPEN -> CONFIRMED`.
+  - Response 200: Updated `WorkShiftSlotResponse`.
+
+Action endpoints (stateful operations):
+- POST `/api/work-shift-slots/accept-invite/:token` (Public)
+  - Description: Accept an invite using an `inviteToken`. No auth required.
   - Params: `token` (string)
-  - Response: `WorkShiftSlot` (accepted invite)
-- POST `/api/work-shift-slots/:id/send-invite` — Auth + branchCheck
-  - Body: `SendInviteSchema` — `{ deliverymanId: string, expiresInHours?: number }`
-  - Response: `{ inviteToken?: string, inviteSentAt?: Date, inviteExpiresAt?: Date }`
-- POST `/api/work-shift-slots/:id/check-in` — Auth + branchCheck
-  - Body: `CheckInOutSchema` — optional `location: { lat, lng }`
-- POST `/api/work-shift-slots/:id/check-out` — Auth + branchCheck
-- POST `/api/work-shift-slots/:id/mark-absent` — Auth + branchCheck
-  - Body: `MarkAbsentSchema` — optional `reason`
-- POST `/api/work-shift-slots/:id/connect-tracking` — Auth + branchCheck
+  - Success: sets slot status to `CONFIRMED` (if invite valid) and returns `WorkShiftSlotResponse`.
+  - Errors: 404 "Convite não encontrado." if token not found; 400 "Este convite não está mais válido." if not in `INVITED` state; 400 "Este convite expirou." if expired.
+
+- POST `/api/work-shift-slots/:id/send-invite`
+  - Description: Assigns a deliveryman and sends an invite token (mocked WhatsApp in code).
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Body (`SendInviteSchema`): `{ deliverymanId: string, expiresInHours?: number (1-72, default 24) }`
+  - Response 200: `{ inviteToken: string | null, inviteSentAt: Date | null, inviteExpiresAt: Date | null }`
+  - Errors: 404 if slot or deliveryman not found; 400 "Apenas turnos com status OPEN podem receber convites." if slot not `OPEN`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
+
+- POST `/api/work-shift-slots/:id/check-in`
+  - Description: Mark slot as `CHECKED_IN` and set `checkInAt`. Only allowed when slot status is `CONFIRMED`.
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`CheckInOutSchema`): optional `{ location?: { lat: number, lng: number } }`
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos CONFIRMADOS podem fazer check-in."
+
+- POST `/api/work-shift-slots/:id/check-out`
+  - Description: Mark slot as `COMPLETED` and set `checkOutAt`. Only allowed when slot status is `CHECKED_IN`.
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`CheckInOutSchema`): optional `{ location?: { lat: number, lng: number } }`
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos com CHECK_IN podem fazer check-out."
+
+- POST `/api/work-shift-slots/:id/mark-absent`
+  - Description: Mark slot as `ABSENT`. Allowed from `CONFIRMED` or `CHECKED_IN` statuses.
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`MarkAbsentSchema`): `{ reason?: string (maxLength 500) }`
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos CONFIRMADOS ou CHECK_IN podem ser marcados como ausentes."
+
+- POST `/api/work-shift-slots/:id/connect-tracking`
+  - Description: Marks `trackingConnected = true` and sets `trackingConnectedAt`.
+  - Auth: `isAuth`, `branchCheck`
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."
+
+Notes & behavior details:
+- Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime` (converted to `Date` in service via `dayjs`). The generated DB TypeBox schema uses `Date` types for responses.
+- Decimal fields: `deliverymanAmountDay` and `deliverymanAmountNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
+- Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
+- Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that confirms the invite if still valid.
+- Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
+- Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
 
 **Payment Requests** (`/api/payment-requests`)
 - POST `/api/payment-requests` — Auth + branchCheck
@@ -215,7 +355,7 @@ Additional endpoints and notes:
 - DELETE `/api/planning/:id` — Auth + branchCheck
 
 Notes on `Planning` payloads:
-- `PlanningMutateSchema` fields: `clientId: string`, `branchId: string`, `plannedDate: string (ISO)`, `plannedCount: number`, `period: 'diurno' | 'noturno'`
+- `PlanningMutateSchema` fields: `clientId: string`, `branchId: string`, `plannedDate: string (ISO)`, `plannedCount: number`, `period: 'daytime' | 'nighttime'`
 - Unique constraint in DB: `@@unique([clientId, plannedDate, period])` — creating duplicates will raise AppError/validation from service layer.
 
 ---

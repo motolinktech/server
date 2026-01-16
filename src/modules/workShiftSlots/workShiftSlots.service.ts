@@ -17,6 +17,18 @@ import type {
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
 
+function formatWorkShiftSlotResponse(slot: any) {
+  if (!slot) return slot;
+  return {
+    ...slot,
+    deliverymanAmountDay: slot.deliverymanAmountDay
+      ? slot.deliverymanAmountDay.toString()
+      : "0",
+    deliverymanAmountNight: slot.deliverymanAmountNight
+      ? slot.deliverymanAmountNight.toString()
+      : "0",
+  };
+}
 export function workShiftSlotsService() {
   return {
     async create(data: Omit<WorkShiftSlotMutateDTO, "id">) {
@@ -36,7 +48,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return workShiftSlot;
+      return formatWorkShiftSlotResponse(workShiftSlot);
     },
 
     async edit(data: Partial<WorkShiftSlotMutateDTO>) {
@@ -55,7 +67,7 @@ export function workShiftSlotsService() {
       ) {
         throw new AppError(
           `Transição de status inválida: ${existingWorkShiftSlot.status} -> ${data.status}`,
-          400
+          400,
         );
       }
 
@@ -69,7 +81,7 @@ export function workShiftSlotsService() {
         data: updateData,
       });
 
-      return updatedWorkShiftSlot;
+      return formatWorkShiftSlotResponse(updatedWorkShiftSlot);
     },
 
     async getById(id: string) {
@@ -85,7 +97,7 @@ export function workShiftSlotsService() {
         throw new AppError("Turno não encontrado.", 404);
       }
 
-      return workShiftSlot;
+      return formatWorkShiftSlotResponse(workShiftSlot);
     },
 
     async listAll(input: ListWorkShiftSlotsDTO = {}) {
@@ -107,7 +119,7 @@ export function workShiftSlotsService() {
         ...(clientId ? { clientId } : {}),
         ...(deliverymanId ? { deliverymanId } : {}),
         ...(status ? { status } : {}),
-        ...(period ? { period } : {}),
+        ...(period?.length ? { period: { hasSome: period } } : {}),
         ...(isFreelancer !== undefined ? { isFreelancer } : {}),
         shiftDate: {
           gte: startDate,
@@ -140,7 +152,7 @@ export function workShiftSlotsService() {
       ]);
 
       return {
-        data: workShiftSlots,
+        data: workShiftSlots.map(formatWorkShiftSlotResponse),
         count,
       };
     },
@@ -186,9 +198,9 @@ export function workShiftSlotsService() {
       const result: Record<string, Array<(typeof workShiftSlots)[number]>> = {};
 
       for (const client of clients) {
-        result[client.name] = workShiftSlots.filter(
-          (slot) => slot.clientId === client.id,
-        );
+        result[client.name] = workShiftSlots
+          .filter((slot) => slot.clientId === client.id)
+          .map(formatWorkShiftSlotResponse);
       }
 
       return result;
@@ -206,7 +218,7 @@ export function workShiftSlotsService() {
       if (slot.status !== workShiftSlotStatusEnum.OPEN) {
         throw new AppError(
           "Apenas turnos com status OPEN podem receber convites.",
-          400
+          400,
         );
       }
 
@@ -259,7 +271,7 @@ export function workShiftSlotsService() {
 
       // TODO: Integrate with WhatsApp API
       console.log(
-        `[MOCK] WhatsApp invite sent to ${deliveryman.phone} with token ${inviteToken}`
+        `[MOCK] WhatsApp invite sent to ${deliveryman.phone} with token ${inviteToken}`,
       );
 
       return {
@@ -299,7 +311,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return updatedSlot;
+      return formatWorkShiftSlotResponse(updatedSlot);
     },
 
     async checkIn(slotId: string, data: CheckInOutDTO) {
@@ -314,7 +326,7 @@ export function workShiftSlotsService() {
       if (slot.status !== workShiftSlotStatusEnum.CONFIRMED) {
         throw new AppError(
           "Apenas turnos CONFIRMADOS podem fazer check-in.",
-          400
+          400,
         );
       }
 
@@ -333,7 +345,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return updatedSlot;
+      return formatWorkShiftSlotResponse(updatedSlot);
     },
 
     async checkOut(slotId: string, data: CheckInOutDTO) {
@@ -348,7 +360,7 @@ export function workShiftSlotsService() {
       if (slot.status !== workShiftSlotStatusEnum.CHECKED_IN) {
         throw new AppError(
           "Apenas turnos com CHECK_IN podem fazer check-out.",
-          400
+          400,
         );
       }
 
@@ -367,7 +379,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return updatedSlot;
+      return formatWorkShiftSlotResponse(updatedSlot);
     },
 
     async markAbsent(slotId: string, data: MarkAbsentDTO) {
@@ -387,7 +399,7 @@ export function workShiftSlotsService() {
       if (!validFromStatuses.includes(slot.status as any)) {
         throw new AppError(
           "Apenas turnos CONFIRMADOS ou CHECK_IN podem ser marcados como ausentes.",
-          400
+          400,
         );
       }
 
@@ -405,7 +417,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return updatedSlot;
+      return formatWorkShiftSlotResponse(updatedSlot);
     },
 
     async connectTracking(slotId: string) {
@@ -431,7 +443,7 @@ export function workShiftSlotsService() {
         },
       });
 
-      return updatedSlot;
+      return formatWorkShiftSlotResponse(updatedSlot);
     },
   };
 }

@@ -211,30 +211,32 @@ model ClientBlock {
 }
 
 model WorkShiftSlot {
-  id              String           @id @default(uuid(7))
-  deliverymanId   String?
-  deliveryman     Deliveryman?     @relation(fields: [deliverymanId], references: [id], onDelete: SetNull)
-  clientId        String
-  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  status          String
-  contractType    String
-  shiftDate       DateTime
-  startTime       DateTime
-  endTime         DateTime
-  period          String           @default("diurno")
-  auditStatus     String
-  logs            Json[]
-  checkInAt       DateTime?
-  checkOutAt      DateTime?
-  isFreelancer    Boolean          @default(false)
-  inviteSentAt        DateTime?
-  inviteToken         String?          @unique
-  inviteExpiresAt     DateTime?
-  trackingConnected   Boolean          @default(false)
-  trackingConnectedAt DateTime?
-  updatedAt           DateTime         @updatedAt
-  createdAt       DateTime         @default(now())
-  paymentRequests PaymentRequest[]
+  id                     String           @id @default(uuid(7))
+  deliverymanId          String?
+  deliveryman            Deliveryman?     @relation(fields: [deliverymanId], references: [id], onDelete: SetNull)
+  clientId               String
+  client                 Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status                 String
+  contractType           String
+  shiftDate              DateTime
+  startTime              DateTime
+  endTime                DateTime
+  period                 String[]         @default(["daytime"])
+  auditStatus            String
+  logs                   Json[]
+  checkInAt              DateTime?
+  checkOutAt             DateTime?
+  isFreelancer           Boolean          @default(false)
+  inviteSentAt           DateTime?
+  inviteToken            String?          @unique
+  inviteExpiresAt        DateTime?
+  trackingConnected      Boolean          @default(false)
+  trackingConnectedAt    DateTime?
+  deliverymanAmountDay   Decimal          @default(0) @db.Decimal(16, 2)
+  deliverymanAmountNight Decimal          @default(0) @db.Decimal(16, 2)
+  updatedAt              DateTime         @updatedAt
+  createdAt              DateTime         @default(now())
+  paymentRequests        PaymentRequest[]
 
   @@index([clientId, shiftDate])
   @@index([deliverymanId, shiftDate])
