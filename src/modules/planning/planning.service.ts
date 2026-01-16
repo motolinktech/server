@@ -33,16 +33,17 @@ export function planningService() {
 
       const existingPlanning = await db.planning.findUnique({
         where: {
-          clientId_plannedDate: {
+          clientId_plannedDate_period: {
             clientId: data.clientId,
             plannedDate: plannedDate.toDate(),
+            period: data.period,
           },
         },
       });
 
       if (existingPlanning) {
         throw new AppError(
-          "Já existe um planejamento para este cliente e data.",
+          "Já existe um planejamento para este cliente, data e período.",
           400,
         );
       }
@@ -53,6 +54,7 @@ export function planningService() {
           branchId: data.branchId,
           plannedDate: plannedDate.toDate(),
           plannedCount: data.plannedCount,
+          period: data.period,
         },
         include: {
           client: {
@@ -105,6 +107,10 @@ export function planningService() {
         updateData.branchId = data.branchId;
       }
 
+      if (data.period) {
+        updateData.period = data.period;
+      }
+
       const updatedPlanning = await db.planning.update({
         where: { id: data.id },
         data: updateData,
@@ -133,11 +139,13 @@ export function planningService() {
         branchId,
         startDate,
         endDate,
+        period,
       } = input;
 
       const where: Prisma.PlanningWhereInput = {
         ...(clientId ? { clientId } : {}),
         ...(branchId ? { branchId } : {}),
+        ...(period ? { period } : {}),
         ...(startDate || endDate
           ? {
               plannedDate: {

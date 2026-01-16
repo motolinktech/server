@@ -1,10 +1,17 @@
 import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
+import {
+  isValidStatusTransition,
+  workShiftSlotStatusEnum,
+} from "../../shared/enums/workShiftSlotStatus.enum";
 import { AppError } from "../../utils/appError";
 import { getDateRange } from "../../utils/dateRange";
 import type {
+  CheckInOutDTO,
   ListWorkShiftSlotsDTO,
+  MarkAbsentDTO,
+  SendInviteDTO,
   WorkShiftSlotMutateDTO,
 } from "./workShiftSlots.schema";
 
@@ -15,7 +22,13 @@ export function workShiftSlotsService() {
     async create(data: Omit<WorkShiftSlotMutateDTO, "id">) {
       const workShiftSlot = await db.workShiftSlot.create({
         data: {
-          ...data,
+          clientId: data.clientId,
+          deliverymanId: data.deliverymanId,
+          contractType: data.contractType,
+          auditStatus: data.auditStatus,
+          period: data.period,
+          isFreelancer: data.isFreelancer ?? false,
+          status: data.status || workShiftSlotStatusEnum.OPEN,
           shiftDate: dayjs(data.shiftDate).toDate(),
           startTime: dayjs(data.startTime).toDate(),
           endTime: dayjs(data.endTime).toDate(),
@@ -33,6 +46,17 @@ export function workShiftSlotsService() {
 
       if (!existingWorkShiftSlot) {
         throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (
+        data.status &&
+        data.status !== existingWorkShiftSlot.status &&
+        !isValidStatusTransition(existingWorkShiftSlot.status, data.status)
+      ) {
+        throw new AppError(
+          `Transição de status inválida: ${existingWorkShiftSlot.status} -> ${data.status}`,
+          400
+        );
       }
 
       const updateData: any = { ...data };
@@ -71,6 +95,8 @@ export function workShiftSlotsService() {
         clientId,
         deliverymanId,
         status,
+        period,
+        isFreelancer,
         month,
         week,
       } = input;
@@ -81,6 +107,8 @@ export function workShiftSlotsService() {
         ...(clientId ? { clientId } : {}),
         ...(deliverymanId ? { deliverymanId } : {}),
         ...(status ? { status } : {}),
+        ...(period ? { period } : {}),
+        ...(isFreelancer !== undefined ? { isFreelancer } : {}),
         shiftDate: {
           gte: startDate,
           lte: endDate,
@@ -164,6 +192,246 @@ export function workShiftSlotsService() {
       }
 
       return result;
+    },
+
+    async sendInvite(slotId: string, data: SendInviteDTO) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (slot.status !== workShiftSlotStatusEnum.OPEN) {
+        throw new AppError(
+          "Apenas turnos com status OPEN podem receber convites.",
+          400
+        );
+      }
+
+      const deliveryman = await db.deliveryman.findUnique({
+        where: { id: data.deliverymanId },
+      });
+
+      if (!deliveryman) {
+        throw new AppError("Entregador não encontrado.", 404);
+      }
+
+      if (deliveryman.isBlocked) {
+        throw new AppError("Entregador está bloqueado.", 400);
+      }
+
+      const block = await db.clientBlock.findUnique({
+        where: {
+          clientId_deliverymanId: {
+            clientId: slot.clientId,
+            deliverymanId: data.deliverymanId,
+          },
+        },
+      });
+
+      if (block) {
+        throw new AppError("Entregador está bloqueado para este cliente.", 400);
+      }
+
+      const inviteToken = crypto.randomUUID();
+      const expiresInHours = data.expiresInHours || 24;
+      const inviteExpiresAt = dayjs().add(expiresInHours, "hour").toDate();
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          deliverymanId: data.deliverymanId,
+          status: workShiftSlotStatusEnum.INVITED,
+          inviteToken,
+          inviteSentAt: new Date(),
+          inviteExpiresAt,
+          logs: {
+            push: {
+              action: "INVITE_SENT",
+              timestamp: new Date(),
+              deliverymanId: data.deliverymanId,
+            },
+          },
+        },
+      });
+
+      // TODO: Integrate with WhatsApp API
+      console.log(
+        `[MOCK] WhatsApp invite sent to ${deliveryman.phone} with token ${inviteToken}`
+      );
+
+      return {
+        inviteToken: updatedSlot.inviteToken,
+        inviteSentAt: updatedSlot.inviteSentAt,
+        inviteExpiresAt: updatedSlot.inviteExpiresAt,
+      };
+    },
+
+    async acceptInvite(token: string) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { inviteToken: token },
+      });
+
+      if (!slot) {
+        throw new AppError("Convite não encontrado.", 404);
+      }
+
+      if (slot.status !== workShiftSlotStatusEnum.INVITED) {
+        throw new AppError("Este convite não está mais válido.", 400);
+      }
+
+      if (slot.inviteExpiresAt && dayjs().isAfter(slot.inviteExpiresAt)) {
+        throw new AppError("Este convite expirou.", 400);
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slot.id },
+        data: {
+          status: workShiftSlotStatusEnum.CONFIRMED,
+          logs: {
+            push: {
+              action: "INVITE_ACCEPTED",
+              timestamp: new Date(),
+            },
+          },
+        },
+      });
+
+      return updatedSlot;
+    },
+
+    async checkIn(slotId: string, data: CheckInOutDTO) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (slot.status !== workShiftSlotStatusEnum.CONFIRMED) {
+        throw new AppError(
+          "Apenas turnos CONFIRMADOS podem fazer check-in.",
+          400
+        );
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          status: workShiftSlotStatusEnum.CHECKED_IN,
+          checkInAt: new Date(),
+          logs: {
+            push: {
+              action: "CHECK_IN",
+              timestamp: new Date(),
+              location: data.location,
+            },
+          },
+        },
+      });
+
+      return updatedSlot;
+    },
+
+    async checkOut(slotId: string, data: CheckInOutDTO) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (slot.status !== workShiftSlotStatusEnum.CHECKED_IN) {
+        throw new AppError(
+          "Apenas turnos com CHECK_IN podem fazer check-out.",
+          400
+        );
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          status: workShiftSlotStatusEnum.COMPLETED,
+          checkOutAt: new Date(),
+          logs: {
+            push: {
+              action: "CHECK_OUT",
+              timestamp: new Date(),
+              location: data.location,
+            },
+          },
+        },
+      });
+
+      return updatedSlot;
+    },
+
+    async markAbsent(slotId: string, data: MarkAbsentDTO) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      const validFromStatuses = [
+        workShiftSlotStatusEnum.CONFIRMED,
+        workShiftSlotStatusEnum.CHECKED_IN,
+      ];
+
+      if (!validFromStatuses.includes(slot.status as any)) {
+        throw new AppError(
+          "Apenas turnos CONFIRMADOS ou CHECK_IN podem ser marcados como ausentes.",
+          400
+        );
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          status: workShiftSlotStatusEnum.ABSENT,
+          logs: {
+            push: {
+              action: "MARKED_ABSENT",
+              timestamp: new Date(),
+              reason: data.reason,
+            },
+          },
+        },
+      });
+
+      return updatedSlot;
+    },
+
+    async connectTracking(slotId: string) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          trackingConnected: true,
+          trackingConnectedAt: new Date(),
+          logs: {
+            push: {
+              action: "TRACKING_CONNECTED",
+              timestamp: new Date(),
+            },
+          },
+        },
+      });
+
+      return updatedSlot;
     },
   };
 }

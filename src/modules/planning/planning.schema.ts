@@ -1,4 +1,5 @@
 import { type Static, t } from "elysia";
+import { periodEnum } from "../../shared/enums/period.enum";
 
 export const PlanningMutateSchema = t.Object({
   id: t.Optional(t.String()),
@@ -9,6 +10,9 @@ export const PlanningMutateSchema = t.Object({
     minimum: 0,
     error: "Quantidade deve ser maior ou igual a 0",
   }),
+  period: t.Union([t.Literal(periodEnum.DIURNO), t.Literal(periodEnum.NOTURNO)], {
+    error: "Período é obrigatório (diurno ou noturno)",
+  }),
 });
 
 export const ListPlanningsSchema = t.Object({
@@ -18,6 +22,9 @@ export const ListPlanningsSchema = t.Object({
   branchId: t.Optional(t.String()),
   startDate: t.Optional(t.String()),
   endDate: t.Optional(t.String()),
+  period: t.Optional(
+    t.Union([t.Literal(periodEnum.DIURNO), t.Literal(periodEnum.NOTURNO)])
+  ),
 });
 
 export type PlanningMutateDTO = Static<typeof PlanningMutateSchema>;
