@@ -7,6 +7,7 @@ import {
 } from "../../shared/enums/workShiftSlotStatus.enum";
 import { AppError } from "../../utils/appError";
 import { getDateRange } from "../../utils/dateRange";
+import { generateToken } from "../../utils/generateToken";
 import type {
   CheckInOutDTO,
   ListWorkShiftSlotsDTO,
@@ -209,6 +210,9 @@ export function workShiftSlotsService() {
     async sendInvite(slotId: string, data: SendInviteDTO) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
+        include: {
+          client: true,
+        },
       });
 
       if (!slot) {
@@ -234,6 +238,10 @@ export function workShiftSlotsService() {
         throw new AppError("Entregador está bloqueado.", 400);
       }
 
+      if (!deliveryman.phone) {
+        throw new AppError("O entregador não possui um telefone.", 404);
+      }
+
       const block = await db.clientBlock.findUnique({
         where: {
           clientId_deliverymanId: {
@@ -247,7 +255,7 @@ export function workShiftSlotsService() {
         throw new AppError("Entregador está bloqueado para este cliente.", 400);
       }
 
-      const inviteToken = crypto.randomUUID();
+      const inviteToken = await generateToken();
       const expiresInHours = data.expiresInHours || 24;
       const inviteExpiresAt = dayjs().add(expiresInHours, "hour").toDate();
 
@@ -269,9 +277,34 @@ export function workShiftSlotsService() {
         },
       });
 
-      // TODO: Integrate with WhatsApp API
-      console.log(
-        `[MOCK] WhatsApp invite sent to ${deliveryman.phone} with token ${inviteToken}`,
+      const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?token=${inviteToken}`;
+      const message = `Olá ${
+        deliveryman.name
+      }, você foi convidado para uma escala para o cliente ${
+        slot.client.name
+      } no dia ${dayjs(slot.shiftDate).format(
+        "DD/MM/YYYY",
+      )}. Para aceitar ou recusar, acesse o link: ${confirmationUrl}`;
+
+      await fetch(
+        "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "motolink-api-token":
+              "tk_3f8a9c2b-4pair_8c0a8340f8de48839d3d683f2b7807d2d71-4e92-9a7e-2b6d5e1f4a9b",
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                nome: deliveryman.name,
+                telefone: deliveryman.phone,
+                mensagem: message,
+              },
+            ],
+          }),
+        },
       );
 
       return {
