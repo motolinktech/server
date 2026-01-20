@@ -9,6 +9,7 @@ import { AppError } from "../../utils/appError";
 import { getDateRange } from "../../utils/dateRange";
 import { generateToken } from "../../utils/generateToken";
 import type {
+  AcceptInviteDTO,
   CheckInOutDTO,
   ListWorkShiftSlotsDTO,
   MarkAbsentDTO,
@@ -314,7 +315,8 @@ export function workShiftSlotsService() {
       };
     },
 
-    async acceptInvite(token: string) {
+    async acceptInvite(data: AcceptInviteDTO & { token: string }) {
+      const { token, isAccepted } = data;
       const slot = await db.workShiftSlot.findUnique({
         where: { inviteToken: token },
       });
@@ -331,13 +333,36 @@ export function workShiftSlotsService() {
         throw new AppError("Este convite expirou.", 400);
       }
 
+      if (isAccepted) {
+        const updatedSlot = await db.workShiftSlot.update({
+          where: { id: slot.id },
+          data: {
+            status: workShiftSlotStatusEnum.CONFIRMED,
+            inviteToken: null,
+            logs: {
+              push: {
+                action: "INVITE_ACCEPTED",
+                timestamp: new Date(),
+              },
+            },
+          },
+        });
+        return formatWorkShiftSlotResponse(updatedSlot);
+      }
+
+      // If not accepted (rejected)
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slot.id },
         data: {
-          status: workShiftSlotStatusEnum.CONFIRMED,
+          status: workShiftSlotStatusEnum.OPEN,
+          deliverymanId: null,
+          inviteToken: null,
+          inviteSentAt: null,
+
+          inviteExpiresAt: null,
           logs: {
             push: {
-              action: "INVITE_ACCEPTED",
+              action: "INVITE_REJECTED",
               timestamp: new Date(),
             },
           },

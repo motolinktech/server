@@ -2,6 +2,7 @@ import Elysia, { t } from "elysia";
 import { WorkShiftSlot } from "../../../generated/prismabox/WorkShiftSlot";
 import { authPlugin } from "../../hooks/auth.hook";
 import {
+  AcceptInviteSchema,
   CheckInOutSchema,
   ListWorkShiftSlotsSchema,
   MarkAbsentSchema,
@@ -35,11 +36,12 @@ export const workShiftSlotsRoutes = new Elysia({
   .use(authPlugin)
   .post(
     "/accept-invite/:token",
-    ({ params }) => service.acceptInvite(params.token),
+    ({ params, body }) => service.acceptInvite({ ...body, ...params }),
     {
       params: t.Object({
         token: t.String(),
       }),
+      body: AcceptInviteSchema,
       response: {
         200: WorkShiftSlotResponse,
       },

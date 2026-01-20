@@ -69,3 +69,9 @@ export type ListWorkShiftSlotsDTO = Static<typeof ListWorkShiftSlotsSchema>;
 export type SendInviteDTO = Static<typeof SendInviteSchema>;
 export type CheckInOutDTO = Static<typeof CheckInOutSchema>;
 export type MarkAbsentDTO = Static<typeof MarkAbsentSchema>;
+
+export const AcceptInviteSchema = t.Object({
+  isAccepted: t.Boolean(),
+});
+
+export type AcceptInviteDTO = Static<typeof AcceptInviteSchema>;
