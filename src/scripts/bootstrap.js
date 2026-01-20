@@ -92,7 +92,7 @@ async function createUser() {
         status: "ACTIVE",
         permissions: [],
         branches: branches.map((branch) => branch.id),
-        documents: [],
+        files: [],
       },
     });
 

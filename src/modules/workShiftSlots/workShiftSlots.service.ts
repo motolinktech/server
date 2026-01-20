@@ -290,7 +290,25 @@ export function workShiftSlotsService() {
         "DD/MM/YYYY",
       )}. Para aceitar ou recusar, acesse o link: ${confirmationUrl}`;
 
-      await fetch(
+      const phoneWithPrefix = `55${deliveryman.phone}`;
+      console.log("[sendInvite] Phone type:", typeof deliveryman.phone);
+      console.log("[sendInvite] Phone with prefix:", phoneWithPrefix);
+
+      const requestBody = {
+        messages: [
+          {
+            nome: deliveryman.name,
+            telefone: phoneWithPrefix,
+            mensagem: message,
+          },
+        ],
+      };
+      console.log(
+        "[sendInvite] Request body:",
+        JSON.stringify(requestBody, null, 2),
+      );
+
+      const response = await fetch(
         "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages",
         {
           method: "POST",
@@ -299,17 +317,13 @@ export function workShiftSlotsService() {
             "motolink-api-token":
               "tk_3f8a9c2b-4pair_8c0a8340f8de48839d3d683f2b7807d2d71-4e92-9a7e-2b6d5e1f4a9b",
           },
-          body: JSON.stringify({
-            messages: [
-              {
-                nome: deliveryman.name,
-                telefone: deliveryman.phone,
-                mensagem: message,
-              },
-            ],
-          }),
+          body: JSON.stringify(requestBody),
         },
       );
+
+      const responseData = await response.text();
+      console.log("[sendInvite] Response status:", response.status);
+      console.log("[sendInvite] Response body:", responseData);
 
       return {
         inviteToken: updatedSlot.inviteToken,

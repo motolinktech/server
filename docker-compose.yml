@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17
+    container_name: motolink-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - motolink-db-volume:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  motolink-db-volume:
