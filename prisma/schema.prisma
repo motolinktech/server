@@ -151,6 +151,7 @@ model Client {
   group               Group?               @relation(fields: [groupId], references: [id], onDelete: SetNull)
   contactName         String
   contactPhone        String               @default("")
+  provideMeal         Boolean              @default(false)
   branchId            String
   branch              Branch               @relation(fields: [branchId], references: [id], onDelete: Restrict)
   isDeleted           Boolean              @default(false)
