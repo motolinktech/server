@@ -220,9 +220,12 @@ export function workShiftSlotsService() {
         throw new AppError("Turno não encontrado.", 404);
       }
 
-      if (slot.status !== workShiftSlotStatusEnum.OPEN) {
+      if (
+        slot.status !== workShiftSlotStatusEnum.OPEN &&
+        slot.status !== workShiftSlotStatusEnum.INVITED
+      ) {
         throw new AppError(
-          "Apenas turnos com status OPEN podem receber convites.",
+          "Apenas turnos com status OPEN ou INVITED podem receber convites.",
           400,
         );
       }

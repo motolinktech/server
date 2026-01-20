@@ -111,7 +111,7 @@ Summary of modules discovered:
 - Payment Requests
 - Planning
 
-Total endpoints documented: 58
+Total endpoints documented: 64
 
 (For each module we list method, path, auth, params/query/body, and response schema references with small examples.)
 
@@ -207,21 +207,22 @@ Total endpoints documented: 58
 - DELETE `/api/clients/:clientId/blocks/:blockId` — Auth + branchCheck
 
 **Work Shift Slots** (`/api/work-shift-slots`)
-- Summary: Manage scheduled delivery shifts (create, list, invite deliverymen, check-in/out, mark absent, connect tracking).
+- Summary: Manage scheduled delivery shifts (create, list, invite deliverymen, check-in/out, mark absent, connect tracking, delete/cancel).
 - Auth: Most routes require `isAuth` and `branchCheck` via `authPlugin`. The invite-accept endpoint is public.
 
-Response format note: All responses use `WorkShiftSlotResponse` which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings.
+Response format note: Most responses use `WorkShiftSlotResponse`, which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings. `GET /api/work-shift-slots/:id` returns the full `WorkShiftSlot` with `deliveryman` and `client` relations, but still coerces the Decimal amounts to strings.
 
-Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `COMPLETED` | `ABSENT` | `CANCELLED`
+Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `COMPLETED` | `ABSENT` | `CANCELLED` | `REJECTED`
 
 Valid status transitions:
 - `OPEN` → `INVITED`, `CONFIRMED`, `CANCELLED`
-- `INVITED` → `CONFIRMED`, `OPEN`, `CANCELLED`
+- `INVITED` → `CONFIRMED`, `OPEN`, `CANCELLED`, `REJECTED`
 - `CONFIRMED` → `CHECKED_IN`, `ABSENT`, `CANCELLED`
 - `CHECKED_IN` → `COMPLETED`, `ABSENT`
 - `COMPLETED` → (terminal)
 - `ABSENT` → (terminal)
 - `CANCELLED` → (terminal)
+- `REJECTED` → (terminal)
 
 Endpoints (detailed):
 - POST `/api/work-shift-slots`
@@ -281,7 +282,7 @@ Endpoints (detailed):
   - Description: Retrieve a single slot with `deliveryman` and `client` relations.
   - Auth: `isAuth`, `branchCheck`
   - Params: `id` (string)
-  - Response 200: Full `WorkShiftSlot` with `deliveryman` (nullable) and `client` objects.
+  - Response 200: Full `WorkShiftSlot` with `deliveryman` (nullable) and `client` objects. `deliverymanAmountDay`/`deliverymanAmountNight` are strings in the JSON response.
 
 - GET `/api/work-shift-slots/group/:groupId`
   - Description: Returns work shift slots grouped by client name for a given `groupId` (within a default date range).
@@ -301,8 +302,13 @@ Action endpoints (stateful operations):
 - POST `/api/work-shift-slots/accept-invite/:token` (Public)
   - Description: Accept an invite using an `inviteToken`. No auth required.
   - Params: `token` (string)
-  - Success: sets slot status to `CONFIRMED` (if invite valid) and returns `WorkShiftSlotResponse`.
+  - Body (`AcceptInviteSchema`): `{ isAccepted: boolean }`
+  - Success:
+    - If `isAccepted=true`, sets slot status to `CONFIRMED` and clears `inviteToken`.
+    - If `isAccepted=false`, sets slot status back to `OPEN`, clears `deliverymanId`, `inviteToken`, `inviteSentAt`, and `inviteExpiresAt`.
+    - Returns `WorkShiftSlotResponse` in both cases.
   - Errors: 404 "Convite não encontrado." if token not found; 400 "Este convite não está mais válido." if not in `INVITED` state; 400 "Este convite expirou." if expired.
+  - Example body: `{ "isAccepted": true }`
 
 - POST `/api/work-shift-slots/:id/send-invite`
   - Description: Assigns a deliveryman and sends an invite token (mocked WhatsApp in code).
@@ -310,7 +316,7 @@ Action endpoints (stateful operations):
   - Params: `id` (string)
   - Body (`SendInviteSchema`): `{ deliverymanId: string, expiresInHours?: number (1-72, default 24) }`
   - Response 200: `{ inviteToken: string | null, inviteSentAt: Date | null, inviteExpiresAt: Date | null }`
-  - Errors: 404 if slot or deliveryman not found; 400 "Apenas turnos com status OPEN podem receber convites." if slot not `OPEN`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
+  - Errors: 404 if slot or deliveryman not found; 404 "O entregador não possui um telefone."; 400 "Apenas turnos com status OPEN podem receber convites." if slot not `OPEN`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
 
 - POST `/api/work-shift-slots/:id/check-in`
   - Description: Mark slot as `CHECKED_IN` and set `checkInAt`. Only allowed when slot status is `CONFIRMED`.
@@ -327,11 +333,11 @@ Action endpoints (stateful operations):
   - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos com CHECK_IN podem fazer check-out."
 
 - POST `/api/work-shift-slots/:id/mark-absent`
-  - Description: Mark slot as `ABSENT`. Allowed from `CONFIRMED` or `CHECKED_IN` statuses.
+  - Description: Mark slot as `ABSENT`. Allowed from any status.
   - Auth: `isAuth`, `branchCheck`
   - Body (`MarkAbsentSchema`): `{ reason?: string (maxLength 500) }`
   - Response 200: Updated `WorkShiftSlotResponse`.
-  - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos CONFIRMADOS ou CHECK_IN podem ser marcados como ausentes."
+  - Errors: 404 "Turno não encontrado."
 
 - POST `/api/work-shift-slots/:id/connect-tracking`
   - Description: Marks `trackingConnected = true` and sets `trackingConnectedAt`.
@@ -339,11 +345,18 @@ Action endpoints (stateful operations):
   - Response 200: Updated `WorkShiftSlotResponse`.
   - Errors: 404 "Turno não encontrado."
 
+- DELETE `/api/work-shift-slots/:id`
+  - Description: Deletes a slot if it is `OPEN`; otherwise sets status to `CANCELLED` and appends a log entry.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."
+
 Notes & behavior details:
 - Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime` (converted to `Date` in service via `dayjs`). The generated DB TypeBox schema uses `Date` types for responses.
 - Decimal fields: `deliverymanAmountDay` and `deliverymanAmountNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
-- Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that confirms the invite if still valid.
+- Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.
 - Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
 - Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
 
