@@ -3,10 +3,16 @@ import cors from "@elysiajs/cors";
 import openapi from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import { routes } from "./routes";
+import { AppError } from "./utils/appError";
 
 const isProd = process.env.NODE_ENV === "production";
 
 const app = new Elysia()
+  .onError(({ error, status }) => {
+    if (error instanceof AppError) return status(error.code, error.message);
+
+    return status(400, "Bad Request");
+  })
   .use(
     cors({
       origin: isProd
