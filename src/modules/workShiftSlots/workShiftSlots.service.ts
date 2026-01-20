@@ -391,17 +391,7 @@ export function workShiftSlotsService() {
         throw new AppError("Turno não encontrado.", 404);
       }
 
-      const validFromStatuses = [
-        workShiftSlotStatusEnum.CONFIRMED,
-        workShiftSlotStatusEnum.CHECKED_IN,
-      ];
-
-      if (!validFromStatuses.includes(slot.status as any)) {
-        throw new AppError(
-          "Apenas turnos CONFIRMADOS ou CHECK_IN podem ser marcados como ausentes.",
-          400,
-        );
-      }
+      // Allow marking absence from any status (previously restricted to CONFIRMED/CHECKED_IN)
 
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
