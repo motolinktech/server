@@ -288,7 +288,7 @@ export function workShiftSlotsService() {
         slot.client.name
       } no dia ${dayjs(slot.shiftDate).format(
         "DD/MM/YYYY",
-      )}. Para aceitar ou recusar, acesse o link: ${confirmationUrl}`;
+      )}. Para aceitar ou recusar, acesse o link:\n${confirmationUrl}\n`;
 
       const phoneWithPrefix = `55${deliveryman.phone}`;
       console.log("[sendInvite] Phone type:", typeof deliveryman.phone);
