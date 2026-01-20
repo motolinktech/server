@@ -69,7 +69,7 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - relations: `deliveryman`, `client`, `paymentRequests`
   - indexes: [clientId, shiftDate], [deliverymanId, shiftDate], [inviteToken]
   - deliverymanPaymentType: String — (e.g. "mainPixKey" | "account" ) indicates how the deliveryman is paid
-  - deliverymenPaymentValue: String — string value representing the payment metric (matches `deliverymanPaymentType`, e.g. "150.00" for a per-shift fixed value)
+  - deliverymenPaymentValue: String — string value representing the payment metric (matches `deliverymanPaymentType`, e.g. "pix-key-asda")
 
 - `PaymentRequest`
   - id, workShiftSlotId, deliverymanId, amount (Decimal 16,2), status

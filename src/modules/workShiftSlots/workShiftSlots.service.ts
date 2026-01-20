@@ -445,5 +445,38 @@ export function workShiftSlotsService() {
 
       return formatWorkShiftSlotResponse(updatedSlot);
     },
+
+    async delete(slotId: string) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (slot.status === workShiftSlotStatusEnum.OPEN) {
+        const deleted = await db.workShiftSlot.delete({
+          where: { id: slotId },
+        });
+
+        return formatWorkShiftSlotResponse(deleted);
+      }
+
+      const updated = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          status: workShiftSlotStatusEnum.CANCELLED,
+          logs: {
+            push: {
+              action: "CANCELLED",
+              timestamp: new Date(),
+            },
+          },
+        },
+      });
+
+      return formatWorkShiftSlotResponse(updated);
+    },
   };
 }

@@ -184,6 +184,14 @@ export const workShiftSlotsRoutes = new Elysia({
           },
         },
       )
+      .delete("/:id", ({ params }) => service.delete(params.id), {
+        params: t.Object({
+          id: t.String(),
+        }),
+        response: {
+          200: WorkShiftSlotResponse,
+        },
+      })
       .post(
         "/:id/connect-tracking",
         ({ params }) => service.connectTracking(params.id),
