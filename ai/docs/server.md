@@ -68,6 +68,8 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - updatedAt, createdAt
   - relations: `deliveryman`, `client`, `paymentRequests`
   - indexes: [clientId, shiftDate], [deliverymanId, shiftDate], [inviteToken]
+  - deliverymanPaymentType: String — (e.g. "mainPixKey" | "account" ) indicates how the deliveryman is paid
+  - deliverymenPaymentValue: String — string value representing the payment metric (matches `deliverymanPaymentType`, e.g. "150.00" for a per-shift fixed value)
 
 - `PaymentRequest`
   - id, workShiftSlotId, deliverymanId, amount (Decimal 16,2), status
@@ -253,7 +255,9 @@ Endpoints (detailed):
       "isFreelancer": false,
       "logs": [],
       "deliverymanAmountDay": "150.00",
-      "deliverymanAmountNight": "0"
+      "deliverymanAmountNight": "0",
+      "deliverymanPaymentType": "per_shift",
+      "deliverymenPaymentValue": "150.00"
     }
     ```
 
