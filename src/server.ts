@@ -1,3 +1,4 @@
+import { logger } from "@bogeychan/elysia-logger";
 import bearer from "@elysiajs/bearer";
 import cors from "@elysiajs/cors";
 import openapi from "@elysiajs/openapi";
@@ -8,6 +9,11 @@ import { AppError } from "./utils/appError";
 const isProd = process.env.NODE_ENV === "production";
 
 const app = new Elysia()
+  .use(
+    logger({
+      level: "error",
+    }),
+  )
   .onError(({ error, status }) => {
     if (error instanceof AppError) return status(error.code, error.message);
 
