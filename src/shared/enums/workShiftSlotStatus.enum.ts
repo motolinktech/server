@@ -3,6 +3,7 @@ export const workShiftSlotStatusEnum = {
   INVITED: "INVITED",
   CONFIRMED: "CONFIRMED",
   CHECKED_IN: "CHECKED_IN",
+  PENDING_COMPLETION: "PENDING_COMPLETION",
   COMPLETED: "COMPLETED",
   ABSENT: "ABSENT",
   CANCELLED: "CANCELLED",
@@ -32,8 +33,11 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
     workShiftSlotStatusEnum.CANCELLED,
   ],
   [workShiftSlotStatusEnum.CHECKED_IN]: [
-    workShiftSlotStatusEnum.COMPLETED,
+    workShiftSlotStatusEnum.PENDING_COMPLETION,
     workShiftSlotStatusEnum.ABSENT,
+  ],
+  [workShiftSlotStatusEnum.PENDING_COMPLETION]: [
+    workShiftSlotStatusEnum.COMPLETED,
   ],
   [workShiftSlotStatusEnum.COMPLETED]: [],
   [workShiftSlotStatusEnum.ABSENT]: [],

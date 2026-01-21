@@ -47,7 +47,7 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - id: String (uuid(7))
   - deliverymanId: String? (nullable)
   - clientId: String
-  - status: String (OPEN | INVITED | CONFIRMED | CHECKED_IN | COMPLETED | ABSENT | CANCELLED)
+  - status: String (OPEN | INVITED | CONFIRMED | CHECKED_IN | PENDING_COMPLETION | COMPLETED | ABSENT | CANCELLED | REJECTED)
   - contractType: String
   - shiftDate: DateTime
   - startTime: DateTime
@@ -111,7 +111,7 @@ Summary of modules discovered:
 - Payment Requests
 - Planning
 
-Total endpoints documented: 64
+Total endpoints documented: 65
 
 (For each module we list method, path, auth, params/query/body, and response schema references with small examples.)
 
@@ -212,13 +212,14 @@ Total endpoints documented: 64
 
 Response format note: Most responses use `WorkShiftSlotResponse`, which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings. `GET /api/work-shift-slots/:id` returns the full `WorkShiftSlot` with `deliveryman` and `client` relations, but still coerces the Decimal amounts to strings.
 
-Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `COMPLETED` | `ABSENT` | `CANCELLED` | `REJECTED`
+Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `PENDING_COMPLETION` | `COMPLETED` | `ABSENT` | `CANCELLED` | `REJECTED`
 
 Valid status transitions:
 - `OPEN` → `INVITED`, `CONFIRMED`, `CANCELLED`
 - `INVITED` → `CONFIRMED`, `OPEN`, `CANCELLED`, `REJECTED`
 - `CONFIRMED` → `CHECKED_IN`, `ABSENT`, `CANCELLED`
-- `CHECKED_IN` → `COMPLETED`, `ABSENT`
+- `CHECKED_IN` → `PENDING_COMPLETION`, `ABSENT`
+- `PENDING_COMPLETION` → `COMPLETED`
 - `COMPLETED` → (terminal)
 - `ABSENT` → (terminal)
 - `CANCELLED` → (terminal)
@@ -342,11 +343,17 @@ Action endpoints (stateful operations):
   - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos CONFIRMADOS podem fazer check-in."
 
 - POST `/api/work-shift-slots/:id/check-out`
-  - Description: Mark slot as `COMPLETED` and set `checkOutAt`. Only allowed when slot status is `CHECKED_IN`.
+  - Description: Mark slot as `PENDING_COMPLETION` and set `checkOutAt`. Only allowed when slot status is `CHECKED_IN`.
   - Auth: `isAuth`, `branchCheck`
   - Body (`CheckInOutSchema`): optional `{ location?: { lat: number, lng: number } }`
   - Response 200: Updated `WorkShiftSlotResponse`.
   - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos com CHECK_IN podem fazer check-out."
+
+- POST `/api/work-shift-slots/:id/confirm-completion`
+  - Description: Mark slot as `COMPLETED`. Only allowed when slot status is `PENDING_COMPLETION`.
+  - Auth: `isAuth`, `branchCheck`
+  - Response 200: Updated `WorkShiftSlotResponse`.
+  - Errors: 404 "Turno não encontrado."; 400 "Apenas turnos com PENDING_COMPLETION podem ser concluídos."
 
 - POST `/api/work-shift-slots/:id/mark-absent`
   - Description: Mark slot as `ABSENT`. Allowed from any status.
@@ -374,7 +381,7 @@ Notes & behavior details:
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
 - Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.
 - Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
-- Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
+- Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, CONFIRM_COMPLETION, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
 
 **Payment Requests** (`/api/payment-requests`)
 - POST `/api/payment-requests` — Auth + branchCheck

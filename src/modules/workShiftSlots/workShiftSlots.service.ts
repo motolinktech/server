@@ -555,13 +555,45 @@ export function workShiftSlotsService() {
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
         data: {
-          status: workShiftSlotStatusEnum.COMPLETED,
+          status: workShiftSlotStatusEnum.PENDING_COMPLETION,
           checkOutAt: new Date(),
           logs: {
             push: {
               action: "CHECK_OUT",
               timestamp: new Date(),
               location: data.location,
+            },
+          },
+        },
+      });
+
+      return formatWorkShiftSlotResponse(updatedSlot);
+    },
+
+    async confirmCompletion(slotId: string) {
+      const slot = await db.workShiftSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (!slot) {
+        throw new AppError("Turno não encontrado.", 404);
+      }
+
+      if (slot.status !== workShiftSlotStatusEnum.PENDING_COMPLETION) {
+        throw new AppError(
+          "Apenas turnos com PENDING_COMPLETION podem ser concluídos.",
+          400,
+        );
+      }
+
+      const updatedSlot = await db.workShiftSlot.update({
+        where: { id: slotId },
+        data: {
+          status: workShiftSlotStatusEnum.COMPLETED,
+          logs: {
+            push: {
+              action: "CONFIRM_COMPLETION",
+              timestamp: new Date(),
             },
           },
         },

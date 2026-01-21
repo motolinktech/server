@@ -179,6 +179,15 @@ export const workShiftSlotsRoutes = new Elysia({
         },
       )
       .post(
+        "/:id/confirm-completion",
+        ({ params }) => service.confirmCompletion(params.id),
+        {
+          response: {
+            200: WorkShiftSlotResponse,
+          },
+        },
+      )
+      .post(
         "/:id/mark-absent",
         ({ params, body }) => service.markAbsent(params.id, body),
         {
