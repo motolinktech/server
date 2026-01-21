@@ -4,6 +4,7 @@ import { authPlugin } from "../../hooks/auth.hook";
 import {
   AcceptInviteSchema,
   CheckInOutSchema,
+  ListWorkShiftSlotsByGroupSchema,
   ListWorkShiftSlotsSchema,
   MarkAbsentSchema,
   SendInviteSchema,
@@ -93,8 +94,8 @@ export const workShiftSlotsRoutes = new Elysia({
       })
       .get(
         "/group/:groupId",
-        async ({ params }) => {
-          const result = await service.getByGroup(params.groupId);
+        async ({ params, query }) => {
+          const result = await service.getByGroup(params.groupId, query);
           return Object.fromEntries(
             Object.entries(result).map(([key, arr]) => [
               key,
@@ -112,6 +113,7 @@ export const workShiftSlotsRoutes = new Elysia({
           params: t.Object({
             groupId: t.String(),
           }),
+          query: ListWorkShiftSlotsByGroupSchema,
           response: {
             200: t.Record(
               t.String(),

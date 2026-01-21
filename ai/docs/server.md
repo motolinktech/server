@@ -268,7 +268,7 @@ Endpoints (detailed):
   - Query params (`ListWorkShiftSlotsSchema`):
     - `page` (number) — optional, default 1
     - `limit` (number) — optional, default PAGE_SIZE env or 20
-    - `clientId` (string) — optional
+    - `clientId` (string) — optional (single ID only)
     - `deliverymanId` (string) — optional
     - `status` (string) — optional
     - `period` (array of `daytime` | `nighttime`) — optional, filters slots containing any of the provided periods (uses Prisma `hasSome`)
@@ -285,10 +285,26 @@ Endpoints (detailed):
   - Response 200: Full `WorkShiftSlot` with `deliveryman` (nullable) and `client` objects. `deliverymanAmountDay`/`deliverymanAmountNight` are strings in the JSON response.
 
 - GET `/api/work-shift-slots/group/:groupId`
-  - Description: Returns work shift slots grouped by client name for a given `groupId` (within a default date range).
+  - Description: Returns work shift slots grouped by client name for a given `groupId`.
   - Auth: `isAuth`, `branchCheck`
   - Params: `groupId` (string)
+  - Query params (`ListWorkShiftSlotsByGroupSchema`):
+    - `startDate` (string) — optional, accepts ISO (e.g., `2026-01-15T00:00:00.000Z`) or date-only (`2026-01-15`) format
+    - `endDate` (string) — optional, accepts ISO or date-only format
+  - Date handling behavior:
+    - If both omitted, defaults to current week (Monday-Sunday) via `getDateRange()`
+    - If only `startDate` provided, `endDate` defaults to end of that same day
+    - If only `endDate` provided, `startDate` defaults to start of that same day
+    - If format is `YYYY-MM-DD`, date is normalized to start/end of day respectively
   - Response 200: `Record<string, WorkShiftSlotResponse[]>` keyed by client name. Each slot includes `deliveryman` (nullable id/name).
+  - Errors:
+    - 400 "startDate inválido. Use formato ISO ou YYYY-MM-DD." — if `startDate` cannot be parsed
+    - 400 "endDate inválido. Use formato ISO ou YYYY-MM-DD." — if `endDate` cannot be parsed
+    - 400 "endDate não pode ser anterior a startDate." — if `endDate < startDate`
+  - Example queries:
+    - `?startDate=2026-01-13&endDate=2026-01-19` — date range filter
+    - `?startDate=2026-01-15` — single day (start to end of Jan 15)
+    - `?startDate=2026-01-15T08:00:00.000Z&endDate=2026-01-15T18:00:00.000Z` — ISO timestamps
 
 - PUT `/api/work-shift-slots/:id`
   - Description: Update a slot. Status transitions are validated server-side.

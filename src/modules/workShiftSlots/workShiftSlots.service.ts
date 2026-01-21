@@ -11,6 +11,7 @@ import { generateToken } from "../../utils/generateToken";
 import type {
   AcceptInviteDTO,
   CheckInOutDTO,
+  ListWorkShiftSlotsByGroupDTO,
   ListWorkShiftSlotsDTO,
   MarkAbsentDTO,
   SendInviteDTO,
@@ -159,7 +160,7 @@ export function workShiftSlotsService() {
       };
     },
 
-    async getByGroup(groupId: string) {
+    async getByGroup(groupId: string, options?: ListWorkShiftSlotsByGroupDTO) {
       const clients = await db.client.findMany({
         where: { groupId },
         select: {
@@ -174,7 +175,63 @@ export function workShiftSlotsService() {
 
       const clientIds = clients.map((c) => c.id);
 
-      const { startDate, endDate } = getDateRange();
+      let startDate: Date;
+      let endDate: Date;
+
+      if (options?.startDate || options?.endDate) {
+        const parsedStart = options?.startDate
+          ? dayjs(options.startDate)
+          : null;
+        const parsedEnd = options?.endDate ? dayjs(options.endDate) : null;
+
+        if (options?.startDate && !parsedStart?.isValid()) {
+          throw new AppError(
+            "startDate inválido. Use formato ISO ou YYYY-MM-DD.",
+            400,
+          );
+        }
+        if (options?.endDate && !parsedEnd?.isValid()) {
+          throw new AppError(
+            "endDate inválido. Use formato ISO ou YYYY-MM-DD.",
+            400,
+          );
+        }
+
+        const isStartDateOnly =
+          options?.startDate?.match(/^\d{4}-\d{2}-\d{2}$/);
+        const isEndDateOnly = options?.endDate?.match(/^\d{4}-\d{2}-\d{2}$/);
+
+        if (parsedStart && parsedEnd) {
+          startDate = isStartDateOnly
+            ? parsedStart.startOf("day").toDate()
+            : parsedStart.toDate();
+          endDate = isEndDateOnly
+            ? parsedEnd.endOf("day").toDate()
+            : parsedEnd.toDate();
+        } else if (parsedStart) {
+          startDate = isStartDateOnly
+            ? parsedStart.startOf("day").toDate()
+            : parsedStart.toDate();
+          endDate = parsedStart.endOf("day").toDate();
+        } else if (parsedEnd) {
+          startDate = parsedEnd.startOf("day").toDate();
+          endDate = isEndDateOnly
+            ? parsedEnd.endOf("day").toDate()
+            : parsedEnd.toDate();
+        } else {
+          const range = getDateRange();
+          startDate = range.startDate;
+          endDate = range.endDate;
+        }
+
+        if (endDate < startDate) {
+          throw new AppError("endDate não pode ser anterior a startDate.", 400);
+        }
+      } else {
+        const range = getDateRange();
+        startDate = range.startDate;
+        endDate = range.endDate;
+      }
 
       const workShiftSlots = await db.workShiftSlot.findMany({
         where: {

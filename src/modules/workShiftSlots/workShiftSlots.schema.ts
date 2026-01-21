@@ -75,3 +75,12 @@ export const AcceptInviteSchema = t.Object({
 });
 
 export type AcceptInviteDTO = Static<typeof AcceptInviteSchema>;
+
+export const ListWorkShiftSlotsByGroupSchema = t.Object({
+  startDate: t.Optional(t.String()),
+  endDate: t.Optional(t.String()),
+});
+
+export type ListWorkShiftSlotsByGroupDTO = Static<
+  typeof ListWorkShiftSlotsByGroupSchema
+>;
