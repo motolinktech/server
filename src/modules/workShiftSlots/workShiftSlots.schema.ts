@@ -35,6 +35,8 @@ export const ListWorkShiftSlotsSchema = t.Object({
     ),
   ),
   isFreelancer: t.Optional(t.Boolean()),
+  startDate: t.Optional(t.String()),
+  endDate: t.Optional(t.String()),
   month: t.Optional(t.Number()),
   week: t.Optional(t.Number()),
 });

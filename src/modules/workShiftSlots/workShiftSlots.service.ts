@@ -112,11 +112,67 @@ export function workShiftSlotsService() {
         status,
         period,
         isFreelancer,
+        startDate: startDateInput,
+        endDate: endDateInput,
         month,
         week,
       } = input;
 
-      const { startDate, endDate } = getDateRange({ month, week });
+      let startDate: Date;
+      let endDate: Date;
+
+      if (startDateInput || endDateInput) {
+        const parsedStart = startDateInput ? dayjs(startDateInput) : null;
+        const parsedEnd = endDateInput ? dayjs(endDateInput) : null;
+
+        if (startDateInput && !parsedStart?.isValid()) {
+          throw new AppError(
+            "startDate inválido. Use formato ISO ou YYYY-MM-DD.",
+            400,
+          );
+        }
+        if (endDateInput && !parsedEnd?.isValid()) {
+          throw new AppError(
+            "endDate inválido. Use formato ISO ou YYYY-MM-DD.",
+            400,
+          );
+        }
+
+        const isStartDateOnly =
+          startDateInput?.match(/^\d{4}-\d{2}-\d{2}$/);
+        const isEndDateOnly = endDateInput?.match(/^\d{4}-\d{2}-\d{2}$/);
+
+        if (parsedStart && parsedEnd) {
+          startDate = isStartDateOnly
+            ? parsedStart.startOf("day").toDate()
+            : parsedStart.toDate();
+          endDate = isEndDateOnly
+            ? parsedEnd.endOf("day").toDate()
+            : parsedEnd.toDate();
+        } else if (parsedStart) {
+          startDate = isStartDateOnly
+            ? parsedStart.startOf("day").toDate()
+            : parsedStart.toDate();
+          endDate = parsedStart.endOf("day").toDate();
+        } else if (parsedEnd) {
+          startDate = parsedEnd.startOf("day").toDate();
+          endDate = isEndDateOnly
+            ? parsedEnd.endOf("day").toDate()
+            : parsedEnd.toDate();
+        } else {
+          const range = getDateRange({ month, week });
+          startDate = range.startDate;
+          endDate = range.endDate;
+        }
+
+        if (endDate < startDate) {
+          throw new AppError("endDate não pode ser anterior a startDate.", 400);
+        }
+      } else {
+        const range = getDateRange({ month, week });
+        startDate = range.startDate;
+        endDate = range.endDate;
+      }
 
       const where: Prisma.WorkShiftSlotWhereInput = {
         ...(clientId ? { clientId } : {}),
