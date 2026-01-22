@@ -45,3 +45,8 @@ package-lock.json
 server
 
 .claude
+
+.env*
+!.env.example
+
+CODEBASE_AUDIT.md
