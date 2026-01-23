@@ -138,8 +138,7 @@ export function workShiftSlotsService() {
           );
         }
 
-        const isStartDateOnly =
-          startDateInput?.match(/^\d{4}-\d{2}-\d{2}$/);
+        const isStartDateOnly = startDateInput?.match(/^\d{4}-\d{2}-\d{2}$/);
         const isEndDateOnly = endDateInput?.match(/^\d{4}-\d{2}-\d{2}$/);
 
         if (parsedStart && parsedEnd) {
@@ -427,8 +426,7 @@ export function workShiftSlotsService() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "motolink-api-token":
-              "tk_3f8a9c2b-4pair_8c0a8340f8de48839d3d683f2b7807d2d71-4e92-9a7e-2b6d5e1f4a9b",
+            "motolink-api-token": process.env.WHATSAPP_TOKEN || "",
           },
           body: JSON.stringify(requestBody),
         },
