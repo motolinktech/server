@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Region } from "../../../generated/prismabox/Region";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import { ListRegionsSchema, RegionsMutateSchema } from "./regions.schema";
 import { regionsService } from "./regions.service";
 

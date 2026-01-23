@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { EventPlain } from "../../../generated/prismabox/Event";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import {
   EventDetailed,
   EventMutateSchema,

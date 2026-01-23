@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Group } from "../../../generated/prismabox/Group";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import { GroupsMutateSchema, ListGroupsSchema } from "./groups.schema";
 import { groupsService } from "./groups.service";
 

@@ -1,5 +1,5 @@
 import Elysia, { t } from "elysia";
-import { authPlugin } from "../../../hooks/auth.hook";
+import { authPlugin } from "../../../plugins/auth.plugin";
 import {
   ClientBlockResponseSchema,
   CreateClientBlockSchema,

@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { WorkShiftSlot } from "../../../generated/prismabox/WorkShiftSlot";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import {
   AcceptInviteSchema,
   CheckInOutSchema,

@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { PaymentRequest } from "../../../generated/prismabox/PaymentRequest";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import {
   ListPaymentRequestsSchema,
   PaymentRequestMutateSchema,

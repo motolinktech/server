@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Client } from "../../../generated/prismabox/Client";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import { blocksRoutes } from "./blocks/blocks.routes";
 import {
   ClientMutateSchema,

@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Deliveryman } from "../../../generated/prismabox/Deliveryman";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import {
   DeliverymenMutateSchema,
   ListDeliverymenSchema,

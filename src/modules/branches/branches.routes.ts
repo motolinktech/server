@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Branch } from "../../../generated/prismabox/Branch";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import { AppError } from "../../utils/appError";
 import { BranchMutateSchema } from "./branches.schema";
 import { branchesService } from "./branches.service";

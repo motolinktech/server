@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { UserPlain } from "../../../generated/prismabox/User";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import {
   UserDetailed,
   UserMutateSchema,

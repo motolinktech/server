@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { Planning } from "../../../generated/prismabox/Planning";
-import { authPlugin } from "../../hooks/auth.hook";
+import { authPlugin } from "../../plugins/auth.plugin";
 import { ListPlanningsSchema, PlanningMutateSchema } from "./planning.schema";
 import { planningService } from "./planning.service";
 
