@@ -324,7 +324,14 @@ export function workShiftSlotsService() {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
         include: {
-          client: true,
+          client: {
+            select: {
+              name: true,
+              street: true,
+              number: true,
+              neighborhood: true,
+            },
+          },
         },
       });
 
@@ -394,13 +401,19 @@ export function workShiftSlotsService() {
       });
 
       const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?token=${inviteToken}`;
-      const message = `Olá ${
-        deliveryman.name
-      }, você foi convidado para uma escala para o cliente ${
-        slot.client.name
-      } no dia ${dayjs(slot.shiftDate).format(
-        "DD/MM/YYYY",
-      )}. Para aceitar ou recusar, acesse o link:\n${confirmationUrl}\n`;
+      const clientAddress = `${slot.client.street}, ${slot.client.number} - ${slot.client.neighborhood}`;
+      const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
+      const message = `Olá, ${deliveryman.name}. Tudo bem?
+Você está convidado, de forma eventual e facultativa, a manifestar interesse em uma prestação de serviço autônoma, na modalidade entrega, na data abaixo descrita.
+A participação não é obrigatória, não gera exclusividade, subordinação, habitualidade ou qualquer tipo de vínculo empregatício, tratando-se de atividade pontual, conforme sua disponibilidade e livre escolha.
+📄 Informações da Prestação de Serviço:
+Data: ${dayjs(slot.shiftDate).format("DD/MM/YYYY")}
+Cliente: ${slot.client.name}
+Prestador: ${deliveryman.name}
+Local de apoio: ${clientAddress}
+Período estimado: ${shiftPeriod}
+Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:
+👉 ${confirmationUrl}`;
 
       const phoneWithPrefix = `55${deliveryman.phone}`;
       console.log("[sendInvite] Phone type:", typeof deliveryman.phone);
