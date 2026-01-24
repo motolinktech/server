@@ -378,6 +378,31 @@ export function workShiftSlotsService() {
         throw new AppError("Entregador está bloqueado para este cliente.", 400);
       }
 
+      // Check for overlapping shifts
+      const overlappingShift = await db.workShiftSlot.findFirst({
+        where: {
+          deliverymanId: data.deliverymanId,
+          status: {
+            in: [
+              workShiftSlotStatusEnum.INVITED,
+              workShiftSlotStatusEnum.CONFIRMED,
+              workShiftSlotStatusEnum.CHECKED_IN,
+              workShiftSlotStatusEnum.PENDING_COMPLETION,
+            ],
+          },
+          // Time overlap: start1 < end2 AND start2 < end1
+          startTime: { lt: slot.endTime },
+          endTime: { gt: slot.startTime },
+        },
+      });
+
+      if (overlappingShift) {
+        throw new AppError(
+          "Entregador já escalado para um turno no mesmo horário.",
+          400,
+        );
+      }
+
       const inviteToken = await generateToken();
       const expiresInHours = data.expiresInHours || 24;
       const inviteExpiresAt = dayjs().add(expiresInHours, "hour").toDate();
@@ -400,8 +425,16 @@ export function workShiftSlotsService() {
         },
       });
 
-      const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?token=${inviteToken}`;
       const clientAddress = `${slot.client.street}, ${slot.client.number} - ${slot.client.neighborhood}`;
+      const urlParams = new URLSearchParams({
+        token: inviteToken,
+        clientName: slot.client.name,
+        clientAddress: clientAddress,
+        shiftDate: dayjs(slot.shiftDate).format("YYYY-MM-DD"),
+        startTime: dayjs(slot.startTime).format("HH:mm"),
+        endTime: dayjs(slot.endTime).format("HH:mm"),
+      });
+      const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
       const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
       const message = `Olá, ${deliveryman.name}. Tudo bem?
 Você está convidado, de forma eventual e facultativa, a manifestar interesse em uma prestação de serviço autônoma, na modalidade entrega, na data abaixo descrita.
