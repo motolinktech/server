@@ -47,17 +47,44 @@ export function usersService() {
 
         const passwordSetupLink = `${process.env.WEB_APP_URL}/trocar-senha?token=${token}&userId=${user.id}`;
 
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
-          to: user.email,
-          subject: "Configure sua senha",
-          html: `
-            <p>Olá!</p>
-            <p>Sua conta foi criada. Para configurar sua senha, clique no link abaixo:</p>
-            <p><a href="${passwordSetupLink}">${passwordSetupLink}</a></p>
-            <p>Este link expira em 24 horas.</p>
-          `,
-        });
+        // Email sending (commented - replaced by WhatsApp)
+        // await resend.emails.send({
+        //   from: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
+        //   to: user.email,
+        //   subject: "Configure sua senha",
+        //   html: `
+        //     <p>Olá!</p>
+        //     <p>Sua conta foi criada. Para configurar sua senha, clique no link abaixo:</p>
+        //     <p><a href="${passwordSetupLink}">${passwordSetupLink}</a></p>
+        //     <p>Este link expira em 24 horas.</p>
+        //   `,
+        // });
+
+        // Send WhatsApp message if user has phone
+        if (user.phone) {
+          const phoneWithPrefix = `55${user.phone}`;
+          const message = `Olá, ${user.name}!\nSua conta foi criada. Para configurar sua senha, acesse o link abaixo:\n${passwordSetupLink}\nEste link expira em 24 horas.`;
+
+          await fetch(
+            "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "motolink-api-token": process.env.WHATSAPP_TOKEN || "",
+              },
+              body: JSON.stringify({
+                messages: [
+                  {
+                    nome: user.name,
+                    telefone: phoneWithPrefix,
+                    mensagem: message,
+                  },
+                ],
+              }),
+            },
+          );
+        }
       }
 
       // Record creation in history traces (non-blocking)

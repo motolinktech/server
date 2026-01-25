@@ -60,11 +60,18 @@ export const usersRoutes = new Elysia({
         },
         branchCheck: true,
       })
-      .get("/me", ({ user }) => service.getById(user.id), {
-        response: {
-          200: t.Omit(UserPlain, ["password"]),
+      .get(
+        "/me",
+        async ({ user }) => {
+          const result = await service.getById(user.id);
+          return { ...result, files: result.files ?? [] };
         },
-      })
+        {
+          response: {
+            200: t.Omit(UserPlain, ["password"]),
+          },
+        },
+      )
       .delete("/:id", ({ params }) => service.delete(params.id))
       .put("/:id", ({ params, body }) => service.update(params.id, body), {
         body: t.Partial(t.Omit(UserMutateSchema, ["id", "password"])),

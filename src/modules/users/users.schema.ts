@@ -53,6 +53,13 @@ export const UserMutateSchema = t.Object({
       error: "Documento é obrigatório.",
     }),
   ),
+  phone: t.Optional(
+    t.String({
+      minLength: 10,
+      maxLength: 11,
+      error: "Telefone inválido.",
+    }),
+  ),
   files: t.Optional(t.Array(UserDocumentSchema, { default: [] })),
 });
 

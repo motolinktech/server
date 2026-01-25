@@ -21,6 +21,7 @@ model User {
   email              String              @unique
   password           String?
   document           String?             @unique
+  phone              String?
   status             String              @default("PENDING")
   image              String?
   role               String              @default("USER")
