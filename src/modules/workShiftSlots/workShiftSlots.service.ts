@@ -816,7 +816,7 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
             clientId: shift.clientId,
             deliverymanId,
             contractType: shift.contractType,
-            shiftDate: dayjs(targetDate).toDate(),
+            shiftDate: dayjs(targetDate).startOf("day").toDate(),
             startTime: newStartTime,
             endTime: newEndTime,
             period: shift.period,
