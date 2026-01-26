@@ -86,3 +86,11 @@ export const ListWorkShiftSlotsByGroupSchema = t.Object({
 export type ListWorkShiftSlotsByGroupDTO = Static<
   typeof ListWorkShiftSlotsByGroupSchema
 >;
+
+export const CopyWorkShiftSlotsSchema = t.Object({
+  sourceDate: t.String({ error: "Data de origem é obrigatória" }),
+  targetDate: t.String({ error: "Data de destino é obrigatória" }),
+  clientId: t.String({ error: "ID do cliente é obrigatório" }),
+});
+
+export type CopyWorkShiftSlotsDTO = Static<typeof CopyWorkShiftSlotsSchema>;

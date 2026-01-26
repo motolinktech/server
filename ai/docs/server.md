@@ -111,7 +111,7 @@ Summary of modules discovered:
 - Payment Requests
 - Planning
 
-Total endpoints documented: 65
+Total endpoints documented: 66
 
 (For each module we list method, path, auth, params/query/body, and response schema references with small examples.)
 
@@ -374,6 +374,48 @@ Action endpoints (stateful operations):
   - Params: `id` (string)
   - Response 200: Updated `WorkShiftSlotResponse`.
   - Errors: 404 "Turno não encontrado."
+
+- POST `/api/work-shift-slots/copy`
+  - Description: Copies all work shift slots from a source date to a target date for a specific client. Handles deliveryman conflicts by copying shifts without the deliveryman assignment if conflicts exist.
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`CopyWorkShiftSlotsSchema`):
+    - `sourceDate` (string, ISO date) — required, the date to copy shifts from
+    - `targetDate` (string, ISO date) — required, the date to copy shifts to
+    - `clientId` (string) — required, only copies shifts for this client
+  - Business rules:
+    - Ignores shifts with status `CANCELLED`
+    - Copies all other shifts (including `OPEN` shifts without deliveryman)
+    - Keeps the same hours (e.g., 08:00-14:00 becomes 08:00-14:00 on target date)
+    - Checks for deliveryman time conflicts on target date
+    - If a deliveryman has a conflicting shift (status `INVITED`, `CONFIRMED`, `CHECKED_IN`, or `PENDING_COMPLETION`), the shift is copied WITHOUT the deliveryman (set to null, status `OPEN`) and included in warnings
+  - Response 200:
+    ```json
+    {
+      "copiedShifts": [WorkShiftSlotResponse, ...],
+      "warnings": {
+        "message": "2 turno(s) copiado(s) sem entregador devido a conflitos de horário",
+        "conflictedShifts": [
+          {
+            "sourceShiftId": "01JHRZ5K8MNPQRS",
+            "deliverymanId": "01JHRZ5K8MABCDE",
+            "deliverymanName": "João Silva",
+            "conflictingShiftId": "01JHRZ5K8MXYZAB"
+          }
+        ]
+      }
+    }
+    ```
+    Note: `warnings` is `null` if no conflicts occurred.
+  - Errors:
+    - 404 "Nenhum turno encontrado na data de origem" — if no non-cancelled shifts exist on source date for the client
+  - Example request body:
+    ```json
+    {
+      "sourceDate": "2026-01-25",
+      "targetDate": "2026-01-26",
+      "clientId": "01JHRZ5K8MABCDE"
+    }
+    ```
 
 Notes & behavior details:
 - Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime` (converted to `Date` in service via `dayjs`). The generated DB TypeBox schema uses `Date` types for responses.

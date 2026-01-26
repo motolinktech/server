@@ -4,6 +4,7 @@ import { authPlugin } from "../../plugins/auth.plugin";
 import {
   AcceptInviteSchema,
   CheckInOutSchema,
+  CopyWorkShiftSlotsSchema,
   ListWorkShiftSlotsByGroupSchema,
   ListWorkShiftSlotsSchema,
   MarkAbsentSchema,
@@ -213,5 +214,26 @@ export const workShiftSlotsRoutes = new Elysia({
             200: WorkShiftSlotResponse,
           },
         },
-      ),
+      )
+      .post("/copy", ({ body }) => service.copyShifts(body), {
+        body: CopyWorkShiftSlotsSchema,
+        response: {
+          200: t.Object({
+            copiedShifts: t.Array(WorkShiftSlotResponse),
+            warnings: t.Nullable(
+              t.Object({
+                message: t.String(),
+                conflictedShifts: t.Array(
+                  t.Object({
+                    sourceShiftId: t.String(),
+                    deliverymanId: t.String(),
+                    deliverymanName: t.String(),
+                    conflictingShiftId: t.String(),
+                  }),
+                ),
+              }),
+            ),
+          }),
+        },
+      }),
   );

@@ -11,6 +11,7 @@ import { generateToken } from "../../utils/generateToken";
 import type {
   AcceptInviteDTO,
   CheckInOutDTO,
+  CopyWorkShiftSlotsDTO,
   ListWorkShiftSlotsByGroupDTO,
   ListWorkShiftSlotsDTO,
   MarkAbsentDTO,
@@ -731,6 +732,118 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
       });
 
       return formatWorkShiftSlotResponse(updated);
+    },
+
+    async copyShifts(data: CopyWorkShiftSlotsDTO) {
+      const { sourceDate, targetDate, clientId } = data;
+
+      // 1. Fetch source shifts (exclude CANCELLED)
+      const sourceShifts = await db.workShiftSlot.findMany({
+        where: {
+          clientId,
+          shiftDate: {
+            gte: dayjs(sourceDate).startOf("day").toDate(),
+            lt: dayjs(sourceDate).endOf("day").toDate(),
+          },
+          status: { not: workShiftSlotStatusEnum.CANCELLED },
+        },
+        include: { deliveryman: { select: { id: true, name: true } } },
+      });
+
+      if (sourceShifts.length === 0) {
+        throw new AppError("Nenhum turno encontrado na data de origem", 404);
+      }
+
+      const copiedShifts: any[] = [];
+      const conflictedShifts: {
+        sourceShiftId: string;
+        deliverymanId: string;
+        deliverymanName: string;
+        conflictingShiftId: string;
+      }[] = [];
+
+      // 2. Process each shift
+      for (const shift of sourceShifts) {
+        // Calculate new times (same hours, different date)
+        const newStartTime = dayjs(targetDate)
+          .hour(dayjs(shift.startTime).hour())
+          .minute(dayjs(shift.startTime).minute())
+          .second(0)
+          .toDate();
+        const newEndTime = dayjs(targetDate)
+          .hour(dayjs(shift.endTime).hour())
+          .minute(dayjs(shift.endTime).minute())
+          .second(0)
+          .toDate();
+
+        let deliverymanId: string | null = shift.deliverymanId;
+        let status = shift.status;
+
+        // 3. Check for conflicts if shift has a deliveryman
+        if (shift.deliverymanId) {
+          const conflictingShift = await db.workShiftSlot.findFirst({
+            where: {
+              deliverymanId: shift.deliverymanId,
+              status: {
+                in: [
+                  workShiftSlotStatusEnum.INVITED,
+                  workShiftSlotStatusEnum.CONFIRMED,
+                  workShiftSlotStatusEnum.CHECKED_IN,
+                  workShiftSlotStatusEnum.PENDING_COMPLETION,
+                ],
+              },
+              startTime: { lt: newEndTime },
+              endTime: { gt: newStartTime },
+            },
+          });
+
+          if (conflictingShift) {
+            // Has conflict: copy without deliveryman
+            conflictedShifts.push({
+              sourceShiftId: shift.id,
+              deliverymanId: shift.deliverymanId,
+              deliverymanName: shift.deliveryman?.name || "Desconhecido",
+              conflictingShiftId: conflictingShift.id,
+            });
+            deliverymanId = null;
+            status = workShiftSlotStatusEnum.OPEN;
+          }
+        }
+
+        // 4. Create new shift
+        const newShift = await db.workShiftSlot.create({
+          data: {
+            clientId: shift.clientId,
+            deliverymanId,
+            contractType: shift.contractType,
+            shiftDate: dayjs(targetDate).toDate(),
+            startTime: newStartTime,
+            endTime: newEndTime,
+            period: shift.period,
+            auditStatus: shift.auditStatus,
+            isFreelancer: shift.isFreelancer,
+            status: deliverymanId ? status : workShiftSlotStatusEnum.OPEN,
+            deliverymanAmountDay: shift.deliverymanAmountDay,
+            deliverymanAmountNight: shift.deliverymanAmountNight,
+            deliverymanPaymentType: shift.deliverymanPaymentType,
+            deliverymenPaymentValue: shift.deliverymenPaymentValue,
+            logs: [],
+          },
+        });
+
+        copiedShifts.push(formatWorkShiftSlotResponse(newShift));
+      }
+
+      return {
+        copiedShifts,
+        warnings:
+          conflictedShifts.length > 0
+            ? {
+                message: `${conflictedShifts.length} turno(s) copiado(s) sem entregador devido a conflitos de horário`,
+                conflictedShifts,
+              }
+            : null,
+      };
     },
   };
 }
