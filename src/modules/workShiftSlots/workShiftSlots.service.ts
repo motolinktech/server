@@ -515,10 +515,8 @@ export function workShiftSlotsService() {
       });
       const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
       const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
-      const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).format("DD/MM/YYYY")}*.  Gostaria de participar?
-      \n
-      📄 Informações da Escala:
-      \n
+      const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).format("DD/MM/YYYY")}*.  Gostaria de participar?\n
+📄 Informações da Escala:\n
 Data: ${dayjs(slot.shiftDate).format("DD/MM/YYYY")}
 Cliente: ${slot.client.name}
 Motoboy: ${deliveryman.name}
