@@ -639,20 +639,25 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
         );
       }
 
+      const checkInTimestamp = new Date();
+      console.log("[checkIn] Setting checkInAt to:", checkInTimestamp.toISOString());
+
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
         data: {
           status: workShiftSlotStatusEnum.CHECKED_IN,
-          checkInAt: new Date(),
+          checkInAt: checkInTimestamp,
           logs: {
             push: {
               action: "CHECK_IN",
-              timestamp: new Date(),
+              timestamp: checkInTimestamp,
               location: data.location,
             },
           },
         },
       });
+
+      console.log("[checkIn] Updated slot checkInAt:", updatedSlot.checkInAt);
 
       return formatWorkShiftSlotResponse(updatedSlot);
     },
@@ -673,20 +678,25 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
         );
       }
 
+      const checkOutTimestamp = new Date();
+      console.log("[checkOut] Setting checkOutAt to:", checkOutTimestamp.toISOString());
+
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
         data: {
           status: workShiftSlotStatusEnum.PENDING_COMPLETION,
-          checkOutAt: new Date(),
+          checkOutAt: checkOutTimestamp,
           logs: {
             push: {
               action: "CHECK_OUT",
-              timestamp: new Date(),
+              timestamp: checkOutTimestamp,
               location: data.location,
             },
           },
         },
       });
+
+      console.log("[checkOut] Updated slot checkOutAt:", updatedSlot.checkOutAt);
 
       return formatWorkShiftSlotResponse(updatedSlot);
     },

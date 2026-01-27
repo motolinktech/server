@@ -287,6 +287,7 @@ Endpoints (detailed):
     - If only one date is provided, the range is that single day.
     - If no dates are provided, falls back to `month`/`week`, and finally to the current week (Mon–Sun).
   - Response 200: `{ data: WorkShiftSlotResponse[] (with deliveryman{ id,name } + client{ id,name }), count: number }`
+  - Note: Items in `data` include `checkInAt` and `checkOutAt` (nullable ISO-8601 timestamps) when present.
   - Example query: `?page=1&limit=20&groupId=01JHRZ5K8MGRP01&startDate=2026-01-13&endDate=2026-01-19&period[]=daytime`
 
 - GET `/api/work-shift-slots/:id`
@@ -294,6 +295,11 @@ Endpoints (detailed):
   - Auth: `isAuth`, `branchCheck`
   - Params: `id` (string)
   - Response 200: Full `WorkShiftSlot` with `deliveryman` (nullable) and `client` objects. `deliverymanAmountDay`/`deliverymanAmountNight` are strings in the JSON response.
+  - Additional fields returned by GET routes:
+    - `checkInAt`: `Date | null` — ISO-8601 timestamp when the slot was checked in. Set by `POST /api/work-shift-slots/:id/check-in` when the status transitions to `CHECKED_IN`.
+      - Example: `"checkInAt": "2026-01-16T10:15:30.000Z"`
+    - `checkOutAt`: `Date | null` — ISO-8601 timestamp when the slot was checked out. Set by `POST /api/work-shift-slots/:id/check-out` when the status transitions to `PENDING_COMPLETION`.
+      - Example: `"checkOutAt": "2026-01-16T13:05:45.000Z"`
 
 - GET `/api/work-shift-slots/group/:groupId`
   - Description: Returns work shift slots grouped by client name for a given `groupId`.
@@ -346,6 +352,7 @@ Action endpoints (stateful operations):
   - Response 200: `{ inviteToken: string | null, inviteSentAt: Date | null, inviteExpiresAt: Date | null }`
   - Overlap rule: Invite is rejected if the deliveryman has another shift on the same shift day that overlaps the time window (overnight spans are honored). Only statuses `INVITED`, `CONFIRMED`, `CHECKED_IN`, `PENDING_COMPLETION` are considered conflicts.
   - Errors: 404 if slot or deliveryman not found; 404 "O entregador não possui um telefone."; 400 "Apenas turnos com status OPEN ou INVITED podem receber convites." if slot not `OPEN`/`INVITED`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
+  - Implementation note: The service posts a message to an external webhook URL (configured via `WHATSAPP_TOKEN` and a hardcoded webhook endpoint in code) and prefixes the deliveryman's phone with the `55` country code when sending messages.
 
 - POST `/api/work-shift-slots/:id/check-in`
   - Description: Mark slot as `CHECKED_IN` and set `checkInAt`. Only allowed when slot status is `CONFIRMED`.
@@ -432,6 +439,10 @@ Action endpoints (stateful operations):
 Notes & behavior details:
 - Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime`. The service normalizes `startTime`/`endTime` to the `shiftDate` day and bumps overnight `endTime` to the next day. Responses use `Date` types (from generated Prismabox schemas).
 - Decimal fields: `deliverymanAmountDay` and `deliverymanAmountNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
+ - Check-in / check-out flow:
+   - `POST /api/work-shift-slots/:id/check-in` sets `status = CHECKED_IN` and `checkInAt = <now>`; the response includes the `checkInAt` value (nullable before action).
+   - `POST /api/work-shift-slots/:id/check-out` sets `status = PENDING_COMPLETION` and `checkOutAt = <now>`; the response includes the `checkOutAt` value (nullable before action).
+   - Both `checkInAt` and `checkOutAt` are nullable and only populated after their respective actions occur.
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
 - Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.
 - Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
