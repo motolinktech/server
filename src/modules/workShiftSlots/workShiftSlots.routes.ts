@@ -26,6 +26,8 @@ const WorkShiftSlotResponse = t.Composite([
   t.Object({
     deliverymanAmountDay: t.String(),
     deliverymanAmountNight: t.String(),
+    checkInAt: t.Nullable(t.Date()),
+    checkOutAt: t.Nullable(t.Date()),
   }),
 ]);
 
