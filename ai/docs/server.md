@@ -241,6 +241,9 @@ Endpoints (detailed):
     - `status` (string) — optional, defaults to `OPEN`
     - `isFreelancer` (boolean) — optional, default: false
     - `logs` (array) — optional
+  - Time normalization:
+    - `startTime` and `endTime` are normalized to the provided `shiftDate` day.
+    - If `endTime` is the same as or earlier than `startTime`, it is treated as overnight and stored on the next day.
   - Response 200: `WorkShiftSlotResponse`. Example:
     ```json
     {
@@ -320,6 +323,7 @@ Endpoints (detailed):
   - Params: `id` (string)
   - Body: same as create (`WorkShiftSlotMutateSchema`, `id` omitted)
   - Important: Invalid status transitions will return 400 with message like `Transição de status inválida: OPEN -> CONFIRMED`.
+  - Time normalization: If `shiftDate`, `startTime`, or `endTime` is updated, times are re-normalized to the (possibly updated) `shiftDate` and overnight end-times are moved to the next day.
   - Response 200: Updated `WorkShiftSlotResponse`.
 
 Action endpoints (stateful operations):
@@ -340,7 +344,8 @@ Action endpoints (stateful operations):
   - Params: `id` (string)
   - Body (`SendInviteSchema`): `{ deliverymanId: string, expiresInHours?: number (1-72, default 24) }`
   - Response 200: `{ inviteToken: string | null, inviteSentAt: Date | null, inviteExpiresAt: Date | null }`
-  - Errors: 404 if slot or deliveryman not found; 404 "O entregador não possui um telefone."; 400 "Apenas turnos com status OPEN podem receber convites." if slot not `OPEN`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
+  - Overlap rule: Invite is rejected if the deliveryman has another shift on the same shift day that overlaps the time window (overnight spans are honored). Only statuses `INVITED`, `CONFIRMED`, `CHECKED_IN`, `PENDING_COMPLETION` are considered conflicts.
+  - Errors: 404 if slot or deliveryman not found; 404 "O entregador não possui um telefone."; 400 "Apenas turnos com status OPEN ou INVITED podem receber convites." if slot not `OPEN`/`INVITED`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
 
 - POST `/api/work-shift-slots/:id/check-in`
   - Description: Mark slot as `CHECKED_IN` and set `checkInAt`. Only allowed when slot status is `CONFIRMED`.
@@ -425,7 +430,7 @@ Action endpoints (stateful operations):
     ```
 
 Notes & behavior details:
-- Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime` (converted to `Date` in service via `dayjs`). The generated DB TypeBox schema uses `Date` types for responses.
+- Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime`. The service normalizes `startTime`/`endTime` to the `shiftDate` day and bumps overnight `endTime` to the next day. Responses use `Date` types (from generated Prismabox schemas).
 - Decimal fields: `deliverymanAmountDay` and `deliverymanAmountNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
 - Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.

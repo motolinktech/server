@@ -33,9 +33,47 @@ function formatWorkShiftSlotResponse(slot: any) {
       : "0",
   };
 }
+
+function normalizeShiftTimes(input: {
+  shiftDate: string | Date;
+  startTime: string | Date;
+  endTime: string | Date;
+}) {
+  const shiftDay = dayjs(input.shiftDate);
+  const startCandidate = dayjs(input.startTime);
+  const endCandidate = dayjs(input.endTime);
+
+  const startTime = shiftDay
+    .hour(startCandidate.hour())
+    .minute(startCandidate.minute())
+    .second(startCandidate.second())
+    .millisecond(startCandidate.millisecond());
+
+  let endTime = shiftDay
+    .hour(endCandidate.hour())
+    .minute(endCandidate.minute())
+    .second(endCandidate.second())
+    .millisecond(endCandidate.millisecond());
+
+  if (endTime.isSame(startTime) || endTime.isBefore(startTime)) {
+    endTime = endTime.add(1, "day");
+  }
+
+  return {
+    shiftDate: shiftDay.toDate(),
+    startTime: startTime.toDate(),
+    endTime: endTime.toDate(),
+  };
+}
 export function workShiftSlotsService() {
   return {
     async create(data: Omit<WorkShiftSlotMutateDTO, "id">) {
+      const normalizedTimes = normalizeShiftTimes({
+        shiftDate: data.shiftDate,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      });
+
       const workShiftSlot = await db.workShiftSlot.create({
         data: {
           clientId: data.clientId,
@@ -45,9 +83,9 @@ export function workShiftSlotsService() {
           period: data.period,
           isFreelancer: data.isFreelancer ?? false,
           status: data.status || workShiftSlotStatusEnum.OPEN,
-          shiftDate: dayjs(data.shiftDate).toDate(),
-          startTime: dayjs(data.startTime).toDate(),
-          endTime: dayjs(data.endTime).toDate(),
+          shiftDate: normalizedTimes.shiftDate,
+          startTime: normalizedTimes.startTime,
+          endTime: normalizedTimes.endTime,
           logs: data.logs || [],
         },
       });
@@ -76,9 +114,16 @@ export function workShiftSlotsService() {
       }
 
       const updateData: any = { ...data };
-      if (data.shiftDate) updateData.shiftDate = dayjs(data.shiftDate).toDate();
-      if (data.startTime) updateData.startTime = dayjs(data.startTime).toDate();
-      if (data.endTime) updateData.endTime = dayjs(data.endTime).toDate();
+      if (data.shiftDate || data.startTime || data.endTime) {
+        const normalizedTimes = normalizeShiftTimes({
+          shiftDate: data.shiftDate ?? existingWorkShiftSlot.shiftDate,
+          startTime: data.startTime ?? existingWorkShiftSlot.startTime,
+          endTime: data.endTime ?? existingWorkShiftSlot.endTime,
+        });
+        updateData.shiftDate = normalizedTimes.shiftDate;
+        updateData.startTime = normalizedTimes.startTime;
+        updateData.endTime = normalizedTimes.endTime;
+      }
 
       const updatedWorkShiftSlot = await db.workShiftSlot.update({
         where: { id: data.id },
@@ -381,9 +426,12 @@ export function workShiftSlotsService() {
         throw new AppError("Entregador está bloqueado para este cliente.", 400);
       }
 
-      // Check for overlapping shifts
-      const overlappingShift = await db.workShiftSlot.findFirst({
+      // Check for overlapping shifts on the same shift day (with overnight handling)
+      const shiftDayStart = dayjs(slot.shiftDate).startOf("day");
+      const shiftDayEnd = dayjs(slot.shiftDate).endOf("day");
+      const candidateShifts = await db.workShiftSlot.findMany({
         where: {
+          id: { not: slotId },
           deliverymanId: data.deliverymanId,
           status: {
             in: [
@@ -393,10 +441,36 @@ export function workShiftSlotsService() {
               workShiftSlotStatusEnum.PENDING_COMPLETION,
             ],
           },
-          // Time overlap: start1 < end2 AND start2 < end1
-          startTime: { lt: slot.endTime },
-          endTime: { gt: slot.startTime },
+          shiftDate: {
+            gte: shiftDayStart.subtract(1, "day").toDate(),
+            lte: shiftDayEnd.add(1, "day").toDate(),
+          },
         },
+        select: {
+          id: true,
+          shiftDate: true,
+          startTime: true,
+          endTime: true,
+        },
+      });
+
+      const slotStart = dayjs(slot.startTime);
+      let slotEnd = dayjs(slot.endTime);
+      if (slotEnd.isSame(slotStart) || slotEnd.isBefore(slotStart)) {
+        slotEnd = slotEnd.add(1, "day");
+      }
+
+      const overlappingShift = candidateShifts.find((candidate) => {
+        const candidateStart = dayjs(candidate.startTime);
+        let candidateEnd = dayjs(candidate.endTime);
+        if (
+          candidateEnd.isSame(candidateStart) ||
+          candidateEnd.isBefore(candidateStart)
+        ) {
+          candidateEnd = candidateEnd.add(1, "day");
+        }
+
+        return candidateStart.isBefore(slotEnd) && candidateEnd.isAfter(slotStart);
       });
 
       if (overlappingShift) {
