@@ -270,14 +270,21 @@ Endpoints (detailed):
     - `page` (number) — optional, default 1
     - `limit` (number) — optional, default PAGE_SIZE env or 20
     - `clientId` (string) — optional (single ID only)
+    - `groupId` (string) — optional, filters by `client.groupId`
     - `deliverymanId` (string) — optional
     - `status` (string) — optional
     - `period` (array of `daytime` | `nighttime`) — optional, filters slots containing any of the provided periods (uses Prisma `hasSome`)
     - `isFreelancer` (boolean) — optional
+    - `startDate` (string) — optional, ISO or `YYYY-MM-DD`
+    - `endDate` (string) — optional, ISO or `YYYY-MM-DD`
     - `month` (number) — optional, narrows `shiftDate` to that month
     - `week` (number) — optional, narrows `shiftDate` to that week
+  - Date handling behavior:
+    - If `startDate` or `endDate` is provided, those are used to build the date range (supports ISO or `YYYY-MM-DD`); date-only values are normalized to start/end of day.
+    - If only one date is provided, the range is that single day.
+    - If no dates are provided, falls back to `month`/`week`, and finally to the current week (Mon–Sun).
   - Response 200: `{ data: WorkShiftSlotResponse[] (with deliveryman{ id,name } + client{ id,name }), count: number }`
-  - Example query: `?page=1&limit=20&month=1&period[]=daytime`
+  - Example query: `?page=1&limit=20&groupId=01JHRZ5K8MGRP01&startDate=2026-01-13&endDate=2026-01-19&period[]=daytime`
 
 - GET `/api/work-shift-slots/:id`
   - Description: Retrieve a single slot with `deliveryman` and `client` relations.
@@ -423,6 +430,7 @@ Notes & behavior details:
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
 - Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.
 - Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
+- Filters: `GET /api/work-shift-slots` also supports `startDate`/`endDate` (ISO or `YYYY-MM-DD`) and `groupId` (filters by `client.groupId`). If both `clientId` and `groupId` are provided, both must match.
 - Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, CONFIRM_COMPLETION, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
 
 **Payment Requests** (`/api/payment-requests`)

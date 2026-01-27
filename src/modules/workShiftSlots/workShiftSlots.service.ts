@@ -109,6 +109,7 @@ export function workShiftSlotsService() {
         page = 1,
         limit = PAGE_SIZE,
         clientId,
+        groupId,
         deliverymanId,
         status,
         period,
@@ -176,6 +177,7 @@ export function workShiftSlotsService() {
 
       const where: Prisma.WorkShiftSlotWhereInput = {
         ...(clientId ? { clientId } : {}),
+        ...(groupId ? { client: { groupId } } : {}),
         ...(deliverymanId ? { deliverymanId } : {}),
         ...(status ? { status } : {}),
         ...(period?.length ? { period: { hasSome: period } } : {}),

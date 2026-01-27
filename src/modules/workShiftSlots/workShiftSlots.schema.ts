@@ -27,6 +27,7 @@ export const ListWorkShiftSlotsSchema = t.Object({
   page: t.Optional(t.Number()),
   limit: t.Optional(t.Number()),
   clientId: t.Optional(t.String()),
+  groupId: t.Optional(t.String()),
   deliverymanId: t.Optional(t.String()),
   status: t.Optional(t.String()),
   period: t.Optional(
