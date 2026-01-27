@@ -470,7 +470,9 @@ export function workShiftSlotsService() {
           candidateEnd = candidateEnd.add(1, "day");
         }
 
-        return candidateStart.isBefore(slotEnd) && candidateEnd.isAfter(slotStart);
+        return (
+          candidateStart.isBefore(slotEnd) && candidateEnd.isAfter(slotStart)
+        );
       });
 
       if (overlappingShift) {
@@ -513,16 +515,17 @@ export function workShiftSlotsService() {
       });
       const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
       const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
-      const message = `Olá, ${deliveryman.name}. Tudo bem?
-Você está convidado, de forma eventual e facultativa, a manifestar interesse em uma prestação de serviço autônoma, na modalidade entrega, na data abaixo descrita.
-A participação não é obrigatória, não gera exclusividade, subordinação, habitualidade ou qualquer tipo de vínculo empregatício, tratando-se de atividade pontual, conforme sua disponibilidade e livre escolha.
-📄 Informações da Prestação de Serviço:
+      const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).format("DD/MM/YYYY")}*.  Gostaria de participar?
+      \n
+      📄 Informações da Escala:
+      \n
 Data: ${dayjs(slot.shiftDate).format("DD/MM/YYYY")}
 Cliente: ${slot.client.name}
-Prestador: ${deliveryman.name}
-Local de apoio: ${clientAddress}
-Período estimado: ${shiftPeriod}
-Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:
+Motoboy: ${deliveryman.name}
+Endereço: ${clientAddress}
+Escala: ${shiftPeriod}
+\n
+Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:\n
 👉 ${confirmationUrl}`;
 
       const phoneWithPrefix = `55${deliveryman.phone}`;
@@ -640,7 +643,10 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
       }
 
       const checkInTimestamp = new Date();
-      console.log("[checkIn] Setting checkInAt to:", checkInTimestamp.toISOString());
+      console.log(
+        "[checkIn] Setting checkInAt to:",
+        checkInTimestamp.toISOString(),
+      );
 
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
@@ -679,7 +685,10 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
       }
 
       const checkOutTimestamp = new Date();
-      console.log("[checkOut] Setting checkOutAt to:", checkOutTimestamp.toISOString());
+      console.log(
+        "[checkOut] Setting checkOutAt to:",
+        checkOutTimestamp.toISOString(),
+      );
 
       const updatedSlot = await db.workShiftSlot.update({
         where: { id: slotId },
@@ -696,7 +705,10 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
         },
       });
 
-      console.log("[checkOut] Updated slot checkOutAt:", updatedSlot.checkOutAt);
+      console.log(
+        "[checkOut] Updated slot checkOutAt:",
+        updatedSlot.checkOutAt,
+      );
 
       return formatWorkShiftSlotResponse(updatedSlot);
     },
