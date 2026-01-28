@@ -19,6 +19,7 @@ const WorkShiftSlotResponse = t.Composite([
     "deliveryman",
     "client",
     "paymentRequests",
+    "invites",
     "deliverymanAmountDay",
     "deliverymanAmountNight",
   ]),
@@ -71,7 +72,7 @@ export const workShiftSlotsRoutes = new Elysia({
       .get("/:id", ({ params }) => service.getById(params.id), {
         response: {
           200: t.Composite([
-            WorkShiftSlot,
+            WorkShiftSlotResponse,
             t.Object({
               deliveryman: t.Nullable(t.Any()),
               client: t.Any(),
