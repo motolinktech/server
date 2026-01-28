@@ -66,13 +66,32 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - deliverymanAmountDay: Decimal(16,2) (default 0) — payment amount for daytime shifts
   - deliverymanAmountNight: Decimal(16,2) (default 0) — payment amount for nighttime shifts
   - updatedAt, createdAt
-  - relations: `deliveryman`, `client`, `paymentRequests`
+  - relations: `deliveryman`, `client`, `paymentRequests`, `invites`
   - indexes: [clientId, shiftDate], [deliverymanId, shiftDate], [inviteToken]
   - deliverymanPaymentType: String — (e.g. "mainPixKey" | "account" ) indicates how the deliveryman is paid
   - deliverymenPaymentValue: String — string value representing the payment metric (matches `deliverymanPaymentType`, e.g. "pix-key-asda")
 
 - `PaymentRequest`
   - id, workShiftSlotId, deliverymanId, amount (Decimal 16,2), status
+
+- `Invite`
+  - id: String (uuid(7))
+  - token: String (unique)
+  - status: String (PENDING | ACCEPTED | REJECTED | EXPIRED)
+  - workShiftSlotId: String
+  - deliverymanId: String
+  - clientId: String
+  - clientName: String
+  - clientAddress: String
+  - shiftDate: DateTime
+  - startTime: DateTime
+  - endTime: DateTime
+  - sentAt: DateTime
+  - expiresAt: DateTime
+  - respondedAt: DateTime?
+  - updatedAt, createdAt
+  - relations: `workShiftSlot`, `deliveryman`, `client`
+  - indexes: [token], [workShiftSlotId]
 
 - `Event`
   - id, name, description?, date, startHour, endHour, branches(String[]), createdBy -> User
@@ -108,10 +127,11 @@ Summary of modules discovered:
 - Deliverymen
 - Clients (and nested Client Blocks)
 - Work Shift Slots
+- Work Shift Slot Invites
 - Payment Requests
 - Planning
 
-Total endpoints documented: 66
+Total endpoints documented: 67
 
 (For each module we list method, path, auth, params/query/body, and response schema references with small examples.)
 
@@ -207,8 +227,8 @@ Total endpoints documented: 66
 - DELETE `/api/clients/:clientId/blocks/:blockId` — Auth + branchCheck
 
 **Work Shift Slots** (`/api/work-shift-slots`)
-- Summary: Manage scheduled delivery shifts (create, list, invite deliverymen, check-in/out, mark absent, connect tracking, delete/cancel).
-- Auth: Most routes require `isAuth` and `branchCheck` via `authPlugin`. The invite-accept endpoint is public.
+- Summary: Manage scheduled delivery shifts (create, list, lifecycle actions, check-in/out, mark absent, connect tracking, delete/cancel). Invitation sending/response lives under the `/invites` submodule.
+- Auth: Core slot routes require `isAuth` and `branchCheck` via `authPlugin`. Invite lookup/response is public (token required), while bulk invite sending requires auth (see Invites module below).
 
 Response format note: Most responses use `WorkShiftSlotResponse`, which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings. `GET /api/work-shift-slots/:id` returns the full `WorkShiftSlot` with `deliveryman` and `client` relations, but still coerces the Decimal amounts to strings.
 
@@ -333,27 +353,6 @@ Endpoints (detailed):
   - Response 200: Updated `WorkShiftSlotResponse`.
 
 Action endpoints (stateful operations):
-- POST `/api/work-shift-slots/accept-invite/:token` (Public)
-  - Description: Accept an invite using an `inviteToken`. No auth required.
-  - Params: `token` (string)
-  - Body (`AcceptInviteSchema`): `{ isAccepted: boolean }`
-  - Success:
-    - If `isAccepted=true`, sets slot status to `CONFIRMED` and clears `inviteToken`.
-    - If `isAccepted=false`, sets slot status back to `OPEN`, clears `deliverymanId`, `inviteToken`, `inviteSentAt`, and `inviteExpiresAt`.
-    - Returns `WorkShiftSlotResponse` in both cases.
-  - Errors: 404 "Convite não encontrado." if token not found; 400 "Este convite não está mais válido." if not in `INVITED` state; 400 "Este convite expirou." if expired.
-  - Example body: `{ "isAccepted": true }`
-
-- POST `/api/work-shift-slots/:id/send-invite`
-  - Description: Assigns a deliveryman and sends an invite token (mocked WhatsApp in code).
-  - Auth: `isAuth`, `branchCheck`
-  - Params: `id` (string)
-  - Body (`SendInviteSchema`): `{ deliverymanId: string, expiresInHours?: number (1-72, default 24) }`
-  - Response 200: `{ inviteToken: string | null, inviteSentAt: Date | null, inviteExpiresAt: Date | null }`
-  - Overlap rule: Invite is rejected if the deliveryman has another shift on the same shift day that overlaps the time window (overnight spans are honored). Only statuses `INVITED`, `CONFIRMED`, `CHECKED_IN`, `PENDING_COMPLETION` are considered conflicts.
-  - Errors: 404 if slot or deliveryman not found; 404 "O entregador não possui um telefone."; 400 "Apenas turnos com status OPEN ou INVITED podem receber convites." if slot not `OPEN`/`INVITED`; 400 "Entregador está bloqueado." or "Entregador está bloqueado para este cliente.".
-  - Implementation note: The service posts a message to an external webhook URL (configured via `WHATSAPP_TOKEN` and a hardcoded webhook endpoint in code) and prefixes the deliveryman's phone with the `55` country code when sending messages.
-
 - POST `/api/work-shift-slots/:id/check-in`
   - Description: Mark slot as `CHECKED_IN` and set `checkInAt`. Only allowed when slot status is `CONFIRMED`.
   - Auth: `isAuth`, `branchCheck`
@@ -444,10 +443,65 @@ Notes & behavior details:
    - `POST /api/work-shift-slots/:id/check-out` sets `status = PENDING_COMPLETION` and `checkOutAt = <now>`; the response includes the `checkOutAt` value (nullable before action).
    - Both `checkInAt` and `checkOutAt` are nullable and only populated after their respective actions occur.
 - Status transitions: enforced by `isValidStatusTransition` in service; invalid transitions return 400.
-- Invite flow: `send-invite` generates `inviteToken`, sets `inviteSentAt` and `inviteExpiresAt`; `accept-invite` is the public endpoint that either confirms (`isAccepted=true`) or rejects (`isAccepted=false`) the invite if still valid.
+- Invite flow: `POST /api/work-shift-slots/invites` creates an `Invite`, sets `inviteToken`, `inviteSentAt`, and `inviteExpiresAt` on the slot, appends `INVITE_SENT` to logs, and sends a WhatsApp message with a `WEB_APP_URL` confirmation link. Public invite endpoints (`GET/POST /api/work-shift-slots/invites/:inviteId`) require the token query param. Accepting updates the invite to `ACCEPTED`, sets slot status to `CONFIRMED`, clears `inviteToken` (keeps `inviteSentAt`/`inviteExpiresAt`), and logs `INVITE_ACCEPTED`. Rejecting updates the invite to `REJECTED`, sets slot status to `OPEN`, clears `deliverymanId`, `inviteToken`, `inviteSentAt`, and `inviteExpiresAt`, and logs `INVITE_REJECTED`.
 - Pagination: `GET /api/work-shift-slots` returns `{ data, count }` and supports `page`/`limit` and date narrowing via `month`/`week` params which the service maps to a date range.
 - Filters: `GET /api/work-shift-slots` also supports `startDate`/`endDate` (ISO or `YYYY-MM-DD`) and `groupId` (filters by `client.groupId`). If both `clientId` and `groupId` are provided, both must match.
-- Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, CHECK_IN, CHECK_OUT, CONFIRM_COMPLETION, MARKED_ABSENT, TRACKING_CONNECTED) appends to the `logs` array with timestamp and relevant data.
+- Logs: Each action (INVITE_SENT, INVITE_ACCEPTED, INVITE_REJECTED, CHECK_IN, CHECK_OUT, CONFIRM_COMPLETION, MARKED_ABSENT, TRACKING_CONNECTED, CANCELLED) appends to the `logs` array with timestamp and relevant data.
+
+**Work Shift Slot Invites** (`/api/work-shift-slots/invites`)
+- Summary: Send invites for `WorkShiftSlot` records and allow deliverymen to view/respond via token-based endpoints.
+- Auth: Public token-based endpoints (`GET /:inviteId`, `POST /:inviteId/respond`); bulk send (`POST /`) requires `isAuth` and `branchCheck`.
+
+Endpoints (detailed):
+- POST `/api/work-shift-slots/invites`
+  - Description: Sends WhatsApp invites in bulk for `INVITED` slots on a given date (single slot, client, or group).
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`SendBulkInvitesSchema`):
+    - `date` (string, `DD/MM/YYYY`) — required
+    - `workShiftSlotId` (string) — optional
+    - `groupId` (string) — optional
+    - `clientId` (string) — optional
+    - At least one of `workShiftSlotId`, `groupId`, `clientId` must be provided.
+  - Behavior:
+    - `workShiftSlotId`: slot must exist, be `INVITED`, and have `deliverymanId`.
+    - `groupId`: must resolve to at least one client; invites are sent to all `INVITED` slots for those clients on `date`.
+    - `clientId`: client must exist; invites are sent to that client’s `INVITED` slots on `date`.
+    - Each invite creates an `Invite` record, sets `inviteToken`, `inviteSentAt`, and `inviteExpiresAt` (24h) on the slot, and logs `INVITE_SENT`.
+    - If no matching slots for a client/group on the given date, the response is `sent: 0, failed: 0, errors: []`.
+  - Response 200: `{ sent: number, failed: number, errors: Array<{ slotId: string, reason: string }> }`
+  - Errors:
+    - 400 "Pelo menos um dos campos workShiftSlotId, groupId ou clientId deve ser fornecido."
+    - 400 "Data inválida. Use o formato dd/MM/YYYY."
+    - 404 "Turno não encontrado." / "Cliente não encontrado." / "Nenhum cliente encontrado para este grupo."
+    - 400 "Apenas turnos com status INVITED podem receber convites." / "Turno não possui entregador atribuído."
+  - Example body:
+    ```json
+    { "date": "28/01/2026", "groupId": "01JHRZ5K8MGRP01" }
+    ```
+  - Example response:
+    ```json
+    { "sent": 3, "failed": 1, "errors": [{ "slotId": "01JHRZ5K8MNPQRS", "reason": "Falha ao enviar mensagem WhatsApp." }] }
+    ```
+
+- GET `/api/work-shift-slots/invites/:inviteId` (Public)
+  - Description: Fetch invite details by ID (token required).
+  - Query (`GetInviteQuerySchema`): `token` (string) — required
+  - Response 200: `InviteResponseSchema`
+    - Fields: `id`, `token`, `status`, `workShiftSlotId`, `deliverymanId`, `clientId`, `clientName`, `clientAddress`, `shiftDate`, `startTime`, `endTime`, `sentAt`, `expiresAt`, `respondedAt`
+  - Behavior: If `status=PENDING` and `expiresAt` is in the past, the invite is updated to `EXPIRED` before returning.
+  - Errors: 404 "Convite não encontrado."; 401 "Token inválido."
+  - Example query: `?token=0e14b7f1b8f34f2e9a`
+
+- POST `/api/work-shift-slots/invites/:inviteId/respond` (Public)
+  - Description: Accept or reject an invite using the token.
+  - Query (`GetInviteQuerySchema`): `token` (string) — required
+  - Body (`RespondInviteSchema`): `{ isAccepted: boolean }`
+  - Success:
+    - `isAccepted=true`: invite status → `ACCEPTED`, slot status → `CONFIRMED`, `inviteToken` cleared, logs `INVITE_ACCEPTED`.
+    - `isAccepted=false`: invite status → `REJECTED`, slot status → `OPEN`, clears `deliverymanId`, `inviteToken`, `inviteSentAt`, `inviteExpiresAt`, logs `INVITE_REJECTED`.
+  - Response 200: `WorkShiftSlotResponse`
+  - Errors: 404 "Convite não encontrado."; 401 "Token inválido."; 400 "Este convite não está mais válido."; 400 "Este convite expirou."
+  - Example body: `{ "isAccepted": true }`
 
 **Payment Requests** (`/api/payment-requests`)
 - POST `/api/payment-requests` — Auth + branchCheck

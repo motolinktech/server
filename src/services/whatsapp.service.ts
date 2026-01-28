@@ -22,8 +22,14 @@ interface UserInviteParams {
 }
 
 export function whatsappService() {
+  const normalizePhone = (phone: string): string => {
+    const digits = phone.replace(/\D/g, "");
+    if (!digits) return phone;
+    return digits.startsWith("55") ? digits : `55${digits}`;
+  };
+
   const sendMessage = async (params: SendMessageParams): Promise<boolean> => {
-    const phoneWithPrefix = `55${params.phone}`;
+    const phoneWithPrefix = normalizePhone(params.phone);
 
     const requestBody = {
       messages: [
