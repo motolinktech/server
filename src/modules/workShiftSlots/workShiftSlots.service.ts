@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
+import { whatsappService } from "../../services/whatsapp.service";
 import {
   isValidStatusTransition,
   workShiftSlotStatusEnum,
@@ -514,51 +515,23 @@ export function workShiftSlotsService() {
         endTime: dayjs(slot.endTime).format("HH:mm"),
       });
       const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
-      const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
-      const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).format("DD/MM/YYYY")}*.  Gostaria de participar?\n
-📄 Informações da Escala:\n
-Data: ${dayjs(slot.shiftDate).format("DD/MM/YYYY")}
-Cliente: ${slot.client.name}
-Motoboy: ${deliveryman.name}
-Endereço: ${clientAddress}
-Escala: ${shiftPeriod}
-\n
-Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:\n
-👉 ${confirmationUrl}`;
 
-      const phoneWithPrefix = `55${deliveryman.phone}`;
-      console.log("[sendInvite] Phone type:", typeof deliveryman.phone);
-      console.log("[sendInvite] Phone with prefix:", phoneWithPrefix);
-
-      const requestBody = {
-        messages: [
-          {
-            nome: deliveryman.name,
-            telefone: phoneWithPrefix,
-            mensagem: message,
-          },
-        ],
-      };
-      console.log(
-        "[sendInvite] Request body:",
-        JSON.stringify(requestBody, null, 2),
-      );
-
-      const response = await fetch(
-        "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "motolink-api-token": process.env.WHATSAPP_TOKEN || "",
-          },
-          body: JSON.stringify(requestBody),
+      // Send WhatsApp message (non-blocking)
+      void whatsappService().sendWorkShiftInvite({
+        deliveryman: { name: deliveryman.name, phone: deliveryman.phone },
+        slot: {
+          shiftDate: slot.shiftDate,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
         },
-      );
-
-      const responseData = await response.text();
-      console.log("[sendInvite] Response status:", response.status);
-      console.log("[sendInvite] Response body:", responseData);
+        client: {
+          name: slot.client.name,
+          street: slot.client.street,
+          number: slot.client.number,
+          neighborhood: slot.client.neighborhood,
+        },
+        confirmationUrl,
+      });
 
       return {
         inviteToken: updatedSlot.inviteToken,

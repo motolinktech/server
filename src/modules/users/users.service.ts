@@ -2,6 +2,7 @@ import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { resend } from "../../services/email.service";
 import { hashService } from "../../services/hash.service";
+import { whatsappService } from "../../services/whatsapp.service";
 import { historyTraceActionsEnum } from "../../shared/enums/historyTraceAction.enum";
 import { statusEnum } from "../../shared/enums/status.enum";
 import { AppError } from "../../utils/appError";
@@ -60,30 +61,12 @@ export function usersService() {
         //   `,
         // });
 
-        // Send WhatsApp message if user has phone
+        // Send WhatsApp message if user has phone (non-blocking)
         if (user.phone) {
-          const phoneWithPrefix = `55${user.phone}`;
-          const message = `Olá, ${user.name}!\nSua conta foi criada. Para configurar sua senha, acesse o link abaixo:\n${passwordSetupLink}\nEste link expira em 24 horas.`;
-
-          await fetch(
-            "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "motolink-api-token": process.env.WHATSAPP_TOKEN || "",
-              },
-              body: JSON.stringify({
-                messages: [
-                  {
-                    nome: user.name,
-                    telefone: phoneWithPrefix,
-                    mensagem: message,
-                  },
-                ],
-              }),
-            },
-          );
+          void whatsappService().sendUsersInvite({
+            user: { name: user.name, phone: user.phone },
+            passwordSetupLink,
+          });
         }
       }
 
