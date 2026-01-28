@@ -42,18 +42,6 @@ export const ListWorkShiftSlotsSchema = t.Object({
   week: t.Optional(t.Number()),
 });
 
-export const SendInviteSchema = t.Object({
-  deliverymanId: t.String({ error: "ID do entregador é obrigatório" }),
-  expiresInHours: t.Optional(
-    t.Number({
-      default: 24,
-      minimum: 1,
-      maximum: 72,
-      error: "Tempo de expiração deve ser entre 1 e 72 horas",
-    }),
-  ),
-});
-
 export const CheckInOutSchema = t.Object({
   location: t.Optional(
     t.Object({
@@ -69,15 +57,8 @@ export const MarkAbsentSchema = t.Object({
 
 export type WorkShiftSlotMutateDTO = Static<typeof WorkShiftSlotMutateSchema>;
 export type ListWorkShiftSlotsDTO = Static<typeof ListWorkShiftSlotsSchema>;
-export type SendInviteDTO = Static<typeof SendInviteSchema>;
 export type CheckInOutDTO = Static<typeof CheckInOutSchema>;
 export type MarkAbsentDTO = Static<typeof MarkAbsentSchema>;
-
-export const AcceptInviteSchema = t.Object({
-  isAccepted: t.Boolean(),
-});
-
-export type AcceptInviteDTO = Static<typeof AcceptInviteSchema>;
 
 export const ListWorkShiftSlotsByGroupSchema = t.Object({
   startDate: t.Optional(t.String()),

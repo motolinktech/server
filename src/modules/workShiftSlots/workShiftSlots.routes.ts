@@ -1,14 +1,13 @@
 import Elysia, { t } from "elysia";
 import { WorkShiftSlot } from "../../../generated/prismabox/WorkShiftSlot";
 import { authPlugin } from "../../plugins/auth.plugin";
+import { invitesRoutes } from "./invites/invites.routes";
 import {
-  AcceptInviteSchema,
   CheckInOutSchema,
   CopyWorkShiftSlotsSchema,
   ListWorkShiftSlotsByGroupSchema,
   ListWorkShiftSlotsSchema,
   MarkAbsentSchema,
-  SendInviteSchema,
   WorkShiftSlotMutateSchema,
 } from "./workShiftSlots.schema";
 import { workShiftSlotsService } from "./workShiftSlots.service";
@@ -36,19 +35,6 @@ export const workShiftSlotsRoutes = new Elysia({
   },
 })
   .use(authPlugin)
-  .post(
-    "/accept-invite/:token",
-    ({ params, body }) => service.acceptInvite({ ...body, ...params }),
-    {
-      params: t.Object({
-        token: t.String(),
-      }),
-      body: AcceptInviteSchema,
-      response: {
-        200: WorkShiftSlotResponse,
-      },
-    },
-  )
   .guard({ isAuth: true, branchCheck: true }, (app) =>
     app
       .post("/", ({ body }) => service.create(body), {
@@ -146,20 +132,6 @@ export const workShiftSlotsRoutes = new Elysia({
         },
       )
       .post(
-        "/:id/send-invite",
-        ({ params, body }) => service.sendInvite(params.id, body),
-        {
-          body: SendInviteSchema,
-          response: {
-            200: t.Object({
-              inviteToken: t.Nullable(t.String()),
-              inviteSentAt: t.Nullable(t.Date()),
-              inviteExpiresAt: t.Nullable(t.Date()),
-            }),
-          },
-        },
-      )
-      .post(
         "/:id/check-in",
         ({ params, body }) => service.checkIn(params.id, body),
         {
@@ -236,4 +208,5 @@ export const workShiftSlotsRoutes = new Elysia({
           }),
         },
       }),
-  );
+  )
+  .use(invitesRoutes);

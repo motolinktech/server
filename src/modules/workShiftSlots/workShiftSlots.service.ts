@@ -1,22 +1,18 @@
 import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
-import { whatsappService } from "../../services/whatsapp.service";
 import {
   isValidStatusTransition,
   workShiftSlotStatusEnum,
 } from "../../shared/enums/workShiftSlotStatus.enum";
 import { AppError } from "../../utils/appError";
 import { getDateRange } from "../../utils/dateRange";
-import { generateToken } from "../../utils/generateToken";
 import type {
-  AcceptInviteDTO,
   CheckInOutDTO,
   CopyWorkShiftSlotsDTO,
   ListWorkShiftSlotsByGroupDTO,
   ListWorkShiftSlotsDTO,
   MarkAbsentDTO,
-  SendInviteDTO,
   WorkShiftSlotMutateDTO,
 } from "./workShiftSlots.schema";
 
@@ -367,234 +363,6 @@ export function workShiftSlotsService() {
       }
 
       return result;
-    },
-
-    async sendInvite(slotId: string, data: SendInviteDTO) {
-      const slot = await db.workShiftSlot.findUnique({
-        where: { id: slotId },
-        include: {
-          client: {
-            select: {
-              name: true,
-              street: true,
-              number: true,
-              neighborhood: true,
-            },
-          },
-        },
-      });
-
-      if (!slot) {
-        throw new AppError("Turno não encontrado.", 404);
-      }
-
-      if (
-        slot.status !== workShiftSlotStatusEnum.OPEN &&
-        slot.status !== workShiftSlotStatusEnum.INVITED
-      ) {
-        throw new AppError(
-          "Apenas turnos com status OPEN ou INVITED podem receber convites.",
-          400,
-        );
-      }
-
-      const deliveryman = await db.deliveryman.findUnique({
-        where: { id: data.deliverymanId },
-      });
-
-      if (!deliveryman) {
-        throw new AppError("Entregador não encontrado.", 404);
-      }
-
-      if (deliveryman.isBlocked) {
-        throw new AppError("Entregador está bloqueado.", 400);
-      }
-
-      if (!deliveryman.phone) {
-        throw new AppError("O entregador não possui um telefone.", 404);
-      }
-
-      const block = await db.clientBlock.findUnique({
-        where: {
-          clientId_deliverymanId: {
-            clientId: slot.clientId,
-            deliverymanId: data.deliverymanId,
-          },
-        },
-      });
-
-      if (block) {
-        throw new AppError("Entregador está bloqueado para este cliente.", 400);
-      }
-
-      // Check for overlapping shifts on the same shift day (with overnight handling)
-      const shiftDayStart = dayjs(slot.shiftDate).startOf("day");
-      const shiftDayEnd = dayjs(slot.shiftDate).endOf("day");
-      const candidateShifts = await db.workShiftSlot.findMany({
-        where: {
-          id: { not: slotId },
-          deliverymanId: data.deliverymanId,
-          status: {
-            in: [
-              workShiftSlotStatusEnum.INVITED,
-              workShiftSlotStatusEnum.CONFIRMED,
-              workShiftSlotStatusEnum.CHECKED_IN,
-              workShiftSlotStatusEnum.PENDING_COMPLETION,
-            ],
-          },
-          shiftDate: {
-            gte: shiftDayStart.subtract(1, "day").toDate(),
-            lte: shiftDayEnd.add(1, "day").toDate(),
-          },
-        },
-        select: {
-          id: true,
-          shiftDate: true,
-          startTime: true,
-          endTime: true,
-        },
-      });
-
-      const slotStart = dayjs(slot.startTime);
-      let slotEnd = dayjs(slot.endTime);
-      if (slotEnd.isSame(slotStart) || slotEnd.isBefore(slotStart)) {
-        slotEnd = slotEnd.add(1, "day");
-      }
-
-      const overlappingShift = candidateShifts.find((candidate) => {
-        const candidateStart = dayjs(candidate.startTime);
-        let candidateEnd = dayjs(candidate.endTime);
-        if (
-          candidateEnd.isSame(candidateStart) ||
-          candidateEnd.isBefore(candidateStart)
-        ) {
-          candidateEnd = candidateEnd.add(1, "day");
-        }
-
-        return (
-          candidateStart.isBefore(slotEnd) && candidateEnd.isAfter(slotStart)
-        );
-      });
-
-      if (overlappingShift) {
-        throw new AppError(
-          "Entregador já escalado para um turno no mesmo horário.",
-          400,
-        );
-      }
-
-      const inviteToken = await generateToken();
-      const expiresInHours = data.expiresInHours || 24;
-      const inviteExpiresAt = dayjs().add(expiresInHours, "hour").toDate();
-
-      const updatedSlot = await db.workShiftSlot.update({
-        where: { id: slotId },
-        data: {
-          deliverymanId: data.deliverymanId,
-          status: workShiftSlotStatusEnum.INVITED,
-          inviteToken,
-          inviteSentAt: new Date(),
-          inviteExpiresAt,
-          logs: {
-            push: {
-              action: "INVITE_SENT",
-              timestamp: new Date(),
-              deliverymanId: data.deliverymanId,
-            },
-          },
-        },
-      });
-
-      const clientAddress = `${slot.client.street}, ${slot.client.number} - ${slot.client.neighborhood}`;
-      const urlParams = new URLSearchParams({
-        token: inviteToken,
-        clientName: slot.client.name,
-        clientAddress: clientAddress,
-        shiftDate: dayjs(slot.shiftDate).format("YYYY-MM-DD"),
-        startTime: dayjs(slot.startTime).format("HH:mm"),
-        endTime: dayjs(slot.endTime).format("HH:mm"),
-      });
-      const confirmationUrl = `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
-
-      // Send WhatsApp message (non-blocking)
-      void whatsappService().sendWorkShiftInvite({
-        deliveryman: { name: deliveryman.name, phone: deliveryman.phone },
-        slot: {
-          shiftDate: slot.shiftDate,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-        },
-        client: {
-          name: slot.client.name,
-          street: slot.client.street,
-          number: slot.client.number,
-          neighborhood: slot.client.neighborhood,
-        },
-        confirmationUrl,
-      });
-
-      return {
-        inviteToken: updatedSlot.inviteToken,
-        inviteSentAt: updatedSlot.inviteSentAt,
-        inviteExpiresAt: updatedSlot.inviteExpiresAt,
-      };
-    },
-
-    async acceptInvite(data: AcceptInviteDTO & { token: string }) {
-      const { token, isAccepted } = data;
-      const slot = await db.workShiftSlot.findUnique({
-        where: { inviteToken: token },
-      });
-
-      if (!slot) {
-        throw new AppError("Convite não encontrado.", 404);
-      }
-
-      if (slot.status !== workShiftSlotStatusEnum.INVITED) {
-        throw new AppError("Este convite não está mais válido.", 400);
-      }
-
-      if (slot.inviteExpiresAt && dayjs().isAfter(slot.inviteExpiresAt)) {
-        throw new AppError("Este convite expirou.", 400);
-      }
-
-      if (isAccepted) {
-        const updatedSlot = await db.workShiftSlot.update({
-          where: { id: slot.id },
-          data: {
-            status: workShiftSlotStatusEnum.CONFIRMED,
-            inviteToken: null,
-            logs: {
-              push: {
-                action: "INVITE_ACCEPTED",
-                timestamp: new Date(),
-              },
-            },
-          },
-        });
-        return formatWorkShiftSlotResponse(updatedSlot);
-      }
-
-      // If not accepted (rejected)
-      const updatedSlot = await db.workShiftSlot.update({
-        where: { id: slot.id },
-        data: {
-          status: workShiftSlotStatusEnum.OPEN,
-          deliverymanId: null,
-          inviteToken: null,
-          inviteSentAt: null,
-
-          inviteExpiresAt: null,
-          logs: {
-            push: {
-              action: "INVITE_REJECTED",
-              timestamp: new Date(),
-            },
-          },
-        },
-      });
-
-      return formatWorkShiftSlotResponse(updatedSlot);
     },
 
     async checkIn(slotId: string, data: CheckInOutDTO) {
