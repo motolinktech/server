@@ -20,6 +20,7 @@ const ClientResponse = t.Omit(Client, [
   "workShiftSlots",
   "blocks",
   "plannings",
+  "invites",
 ]);
 
 export const clientsRoutes = new Elysia({
