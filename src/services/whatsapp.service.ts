@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { dayjs } from "../utils/dayjs";
 
 const WHATSAPP_WEBHOOK_URL =
   "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages";
@@ -12,7 +12,12 @@ interface SendMessageParams {
 interface WorkShiftInviteParams {
   deliveryman: { name: string; phone: string };
   slot: { shiftDate: Date; startTime: Date; endTime: Date };
-  client: { name: string; street: string; number: string; neighborhood: string };
+  client: {
+    name: string;
+    street: string;
+    number: string;
+    neighborhood: string;
+  };
   confirmationUrl: string;
 }
 
@@ -41,10 +46,7 @@ export function whatsappService() {
       ],
     };
 
-    console.log(
-      "[whatsappService] Sending message to:",
-      phoneWithPrefix,
-    );
+    console.log("[whatsappService] Sending message to:", phoneWithPrefix);
     console.log(
       "[whatsappService] Request body:",
       JSON.stringify(requestBody, null, 2),
@@ -86,11 +88,11 @@ export function whatsappService() {
     const { deliveryman, slot, client, confirmationUrl } = params;
 
     const clientAddress = `${client.street}, ${client.number} - ${client.neighborhood}`;
-    const shiftPeriod = `${dayjs(slot.startTime).format("HH:mm")} às ${dayjs(slot.endTime).format("HH:mm")}`;
+    const shiftPeriod = `${dayjs(slot.startTime).tz().format("HH:mm")} às ${dayjs(slot.endTime).tz().format("HH:mm")}`;
 
-    const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).format("DD/MM/YYYY")}*.  Gostaria de participar?\n
+    const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).tz().format("DD/MM/YYYY")}*.  Gostaria de participar?\n
 📄 Informações da Escala:\n
-Data: ${dayjs(slot.shiftDate).format("DD/MM/YYYY")}
+Data: ${dayjs(slot.shiftDate).tz().format("DD/MM/YYYY")}
 Cliente: ${client.name}
 Motoboy: ${deliveryman.name}
 Endereço: ${clientAddress}
@@ -106,7 +108,9 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
     });
   };
 
-  const sendUsersInvite = async (params: UserInviteParams): Promise<boolean> => {
+  const sendUsersInvite = async (
+    params: UserInviteParams,
+  ): Promise<boolean> => {
     const { user, passwordSetupLink } = params;
 
     const message = `Olá, ${user.name}!\nSua conta foi criada. Para configurar sua senha, acesse o link abaixo:\n${passwordSetupLink}\nEste link expira em 24 horas.`;

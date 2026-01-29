@@ -1,8 +1,8 @@
-import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { PaymentRequestStatus } from "../../shared/enums/paymentRequest.enum";
 import { AppError } from "../../utils/appError";
+import { dayjs } from "../../utils/dayjs";
 import type {
   ListPaymentRequestsDTO,
   PaymentRequestMutateDTO,

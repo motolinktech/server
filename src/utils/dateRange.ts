@@ -1,9 +1,4 @@
-import dayjs from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
-import weekOfYear from "dayjs/plugin/weekOfYear";
-
-dayjs.extend(weekOfYear);
-dayjs.extend(isoWeek);
+import { dayjs } from "./dayjs";
 
 interface DateRangeOptions {
   month?: number;

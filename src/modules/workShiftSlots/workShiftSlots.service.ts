@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import {
@@ -7,6 +6,7 @@ import {
 } from "../../shared/enums/workShiftSlotStatus.enum";
 import { AppError } from "../../utils/appError";
 import { getDateRange } from "../../utils/dateRange";
+import { dayjs } from "../../utils/dayjs";
 import type {
   CheckInOutDTO,
   CopyWorkShiftSlotsDTO,

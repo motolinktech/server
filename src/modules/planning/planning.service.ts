@@ -1,7 +1,7 @@
-import dayjs from "dayjs";
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
 import { AppError } from "../../utils/appError";
+import { dayjs } from "../../utils/dayjs";
 import type { ListPlanningsDTO, PlanningMutateDTO } from "./planning.schema";
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;

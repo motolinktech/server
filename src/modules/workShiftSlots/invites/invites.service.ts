@@ -1,18 +1,15 @@
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
 import { db } from "../../../services/database.service";
 import { whatsappService } from "../../../services/whatsapp.service";
 import { inviteStatusEnum } from "../../../shared/enums/inviteStatus.enum";
 import { workShiftSlotStatusEnum } from "../../../shared/enums/workShiftSlotStatus.enum";
 import { AppError } from "../../../utils/appError";
+import { dayjs } from "../../../utils/dayjs";
 import { generateToken } from "../../../utils/generateToken";
 import type {
   InviteResponseDTO,
   SendBulkInvitesDTO,
   SendBulkInvitesResponseDTO,
 } from "./invites.schema";
-
-dayjs.extend(customParseFormat);
 
 interface SlotWithClient {
   id: string;
@@ -270,7 +267,8 @@ export function invitesService() {
           failed++;
           errors.push({
             slotId: slot.id,
-            reason: error instanceof Error ? error.message : "Erro desconhecido",
+            reason:
+              error instanceof Error ? error.message : "Erro desconhecido",
           });
         }
       }
@@ -323,7 +321,11 @@ export function invitesService() {
       };
     },
 
-    async respondToInvite(inviteId: string, token: string, isAccepted: boolean) {
+    async respondToInvite(
+      inviteId: string,
+      token: string,
+      isAccepted: boolean,
+    ) {
       const invite = await db.invite.findUnique({
         where: { id: inviteId },
         include: { workShiftSlot: true },
