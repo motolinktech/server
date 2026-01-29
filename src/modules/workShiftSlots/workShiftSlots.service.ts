@@ -138,6 +138,16 @@ export function workShiftSlotsService() {
         updateData.endTime = normalizedTimes.endTime;
       }
 
+      if (data.checkInAt !== undefined) {
+        updateData.checkInAt = data.checkInAt ? new Date(data.checkInAt) : null;
+      }
+
+      if (data.checkOutAt !== undefined) {
+        updateData.checkOutAt = data.checkOutAt
+          ? new Date(data.checkOutAt)
+          : null;
+      }
+
       const updatedWorkShiftSlot = await db.workShiftSlot.update({
         where: { id: data.id },
         data: updateData,
