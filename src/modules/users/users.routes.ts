@@ -19,7 +19,7 @@ export const usersRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true }, (app) =>
     app
-      .post("/", ({ body }) => service.create({ ...body }), {
+      .post("/", ({ body, currentBranch }) => service.create({ ...body }, currentBranch), {
         body: t.Omit(UserMutateSchema, ["id"]),
         response: {
           200: t.Omit(UserPlain, ["password"]),

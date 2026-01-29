@@ -56,7 +56,7 @@ export function invitesService() {
     return `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
   };
 
-  const sendInviteForSlot = async (slot: SlotWithClient): Promise<void> => {
+  const sendInviteForSlot = async (slot: SlotWithClient, branchId: string): Promise<void> => {
     if (!slot.deliverymanId) {
       throw new AppError("Turno não possui entregador atribuído.", 400);
     }
@@ -122,6 +122,7 @@ export function invitesService() {
       },
       client: slot.client,
       confirmationUrl,
+      branchId,
     });
 
     if (!success) {
@@ -136,6 +137,7 @@ export function invitesService() {
   return {
     async sendInvites(
       data: SendBulkInvitesDTO,
+      branchId: string,
     ): Promise<SendBulkInvitesResponseDTO> {
       const { date, workShiftSlotId, groupId, clientId } = data;
 
@@ -194,7 +196,7 @@ export function invitesService() {
           deliverymanId: slot.deliverymanId,
           clientId: slot.clientId,
           client: slot.client,
-        });
+        }, branchId);
 
         return { sent: 1, failed: 0, errors: [] };
       }
@@ -267,7 +269,7 @@ export function invitesService() {
             deliverymanId: slot.deliverymanId,
             clientId: slot.clientId,
             client: slot.client,
-          });
+          }, branchId);
           sent++;
         } catch (error) {
           failed++;

@@ -18,7 +18,7 @@ const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
 
 export function usersService() {
   return {
-    async create(body: Omit<UserMutateDTO, "id">) {
+    async create(body: Omit<UserMutateDTO, "id">, branchId: string) {
       const data = { ...body, status: statusEnum.PENDING as string };
 
       if (data.password) {
@@ -66,6 +66,7 @@ export function usersService() {
           void whatsappService().sendUsersInvite({
             user: { name: user.name, phone: user.phone },
             passwordSetupLink,
+            branchId,
           });
         }
       }

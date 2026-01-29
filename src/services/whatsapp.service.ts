@@ -1,4 +1,5 @@
 import { dayjs } from "../utils/dayjs";
+import { db } from "./database.service";
 
 const WHATSAPP_WEBHOOK_URL =
   "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages";
@@ -7,6 +8,8 @@ interface SendMessageParams {
   name: string;
   phone: string;
   message: string;
+  tipo: "interno" | "convite";
+  branchId: string;
 }
 
 interface WorkShiftInviteParams {
@@ -19,11 +22,13 @@ interface WorkShiftInviteParams {
     neighborhood: string;
   };
   confirmationUrl: string;
+  branchId: string;
 }
 
 interface UserInviteParams {
   user: { name: string; phone: string };
   passwordSetupLink: string;
+  branchId: string;
 }
 
 export function whatsappService() {
@@ -34,6 +39,16 @@ export function whatsappService() {
   };
 
   const sendMessage = async (params: SendMessageParams): Promise<boolean> => {
+    const branch = await db.branch.findUnique({
+      where: { id: params.branchId },
+      select: { code: true },
+    });
+
+    if (!branch) {
+      console.error("[whatsappService] Branch not found:", params.branchId);
+      return false;
+    }
+
     const phoneWithPrefix = normalizePhone(params.phone);
 
     const requestBody = {
@@ -42,6 +57,8 @@ export function whatsappService() {
           nome: params.name,
           telefone: phoneWithPrefix,
           mensagem: params.message,
+          tipo: params.tipo,
+          filial: branch.code,
         },
       ],
     };
@@ -85,7 +102,7 @@ export function whatsappService() {
   const sendWorkShiftInvite = async (
     params: WorkShiftInviteParams,
   ): Promise<boolean> => {
-    const { deliveryman, slot, client, confirmationUrl } = params;
+    const { deliveryman, slot, client, confirmationUrl, branchId } = params;
 
     const clientAddress = `${client.street}, ${client.number} - ${client.neighborhood}`;
     const shiftPeriod = `${dayjs(slot.startTime).tz().format("HH:mm")} às ${dayjs(slot.endTime).tz().format("HH:mm")}`;
@@ -105,13 +122,15 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
       name: deliveryman.name,
       phone: deliveryman.phone,
       message,
+      tipo: "convite",
+      branchId,
     });
   };
 
   const sendUsersInvite = async (
     params: UserInviteParams,
   ): Promise<boolean> => {
-    const { user, passwordSetupLink } = params;
+    const { user, passwordSetupLink, branchId } = params;
 
     const message = `Olá, ${user.name}!\nSua conta foi criada. Para configurar sua senha, acesse o link abaixo:\n${passwordSetupLink}\nEste link expira em 24 horas.`;
 
@@ -119,6 +138,8 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
       name: user.name,
       phone: user.phone,
       message,
+      tipo: "interno",
+      branchId,
     });
   };
 
