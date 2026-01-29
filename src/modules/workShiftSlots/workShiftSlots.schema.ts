@@ -21,6 +21,10 @@ export const WorkShiftSlotMutateSchema = t.Object({
   auditStatus: t.String(),
   isFreelancer: t.Optional(t.Boolean({ default: false })),
   logs: t.Optional(t.Array(t.Any())),
+  deliverymanAmountDay: t.Optional(t.Number()),
+  deliverymanAmountNight: t.Optional(t.Number()),
+  deliverymanPaymentType: t.Optional(t.String()),
+  deliverymenPaymentValue: t.Optional(t.String()),
 });
 
 export const ListWorkShiftSlotsSchema = t.Object({

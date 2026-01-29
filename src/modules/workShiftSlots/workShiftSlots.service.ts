@@ -84,6 +84,10 @@ export function workShiftSlotsService() {
           startTime: normalizedTimes.startTime,
           endTime: normalizedTimes.endTime,
           logs: data.logs || [],
+          deliverymanAmountDay: data.deliverymanAmountDay,
+          deliverymanAmountNight: data.deliverymanAmountNight,
+          deliverymanPaymentType: data.deliverymanPaymentType,
+          deliverymenPaymentValue: data.deliverymenPaymentValue,
         },
       });
 
