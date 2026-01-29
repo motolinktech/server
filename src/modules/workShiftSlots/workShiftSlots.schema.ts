@@ -25,6 +25,12 @@ export const WorkShiftSlotMutateSchema = t.Object({
   deliverymanAmountNight: t.Optional(t.Number()),
   deliverymanPaymentType: t.Optional(t.String()),
   deliverymenPaymentValue: t.Optional(t.String()),
+  paymentForm: t.Optional(t.String({ default: "DAILY" })),
+  guaranteedQuantityDay: t.Optional(t.Number({ default: 0 })),
+  guaranteedQuantityNight: t.Optional(t.Number({ default: 0 })),
+  deliverymanPerDeliveryDay: t.Optional(t.Number({ default: 0 })),
+  deliverymanPerDeliveryNight: t.Optional(t.Number({ default: 0 })),
+  isWeekendRate: t.Optional(t.Boolean({ default: false })),
 });
 
 export const ListWorkShiftSlotsSchema = t.Object({

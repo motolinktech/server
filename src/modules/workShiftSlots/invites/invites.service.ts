@@ -38,6 +38,12 @@ function formatWorkShiftSlotResponse(slot: any) {
     deliverymanAmountNight: slot.deliverymanAmountNight
       ? slot.deliverymanAmountNight.toString()
       : "0",
+    deliverymanPerDeliveryDay: slot.deliverymanPerDeliveryDay
+      ? slot.deliverymanPerDeliveryDay.toString()
+      : "0",
+    deliverymanPerDeliveryNight: slot.deliverymanPerDeliveryNight
+      ? slot.deliverymanPerDeliveryNight.toString()
+      : "0",
   };
 }
 

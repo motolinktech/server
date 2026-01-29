@@ -28,6 +28,12 @@ function formatWorkShiftSlotResponse(slot: any) {
     deliverymanAmountNight: slot.deliverymanAmountNight
       ? slot.deliverymanAmountNight.toString()
       : "0",
+    deliverymanPerDeliveryDay: slot.deliverymanPerDeliveryDay
+      ? slot.deliverymanPerDeliveryDay.toString()
+      : "0",
+    deliverymanPerDeliveryNight: slot.deliverymanPerDeliveryNight
+      ? slot.deliverymanPerDeliveryNight.toString()
+      : "0",
   };
 }
 
@@ -88,6 +94,12 @@ export function workShiftSlotsService() {
           deliverymanAmountNight: data.deliverymanAmountNight,
           deliverymanPaymentType: data.deliverymanPaymentType,
           deliverymenPaymentValue: data.deliverymenPaymentValue,
+          paymentForm: data.paymentForm ?? "DAILY",
+          guaranteedQuantityDay: data.guaranteedQuantityDay ?? 0,
+          guaranteedQuantityNight: data.guaranteedQuantityNight ?? 0,
+          deliverymanPerDeliveryDay: data.deliverymanPerDeliveryDay ?? 0,
+          deliverymanPerDeliveryNight: data.deliverymanPerDeliveryNight ?? 0,
+          isWeekendRate: data.isWeekendRate ?? false,
         },
       });
 
@@ -668,6 +680,12 @@ export function workShiftSlotsService() {
             deliverymanAmountNight: shift.deliverymanAmountNight,
             deliverymanPaymentType: shift.deliverymanPaymentType,
             deliverymenPaymentValue: shift.deliverymenPaymentValue,
+            paymentForm: shift.paymentForm,
+            guaranteedQuantityDay: shift.guaranteedQuantityDay,
+            guaranteedQuantityNight: shift.guaranteedQuantityNight,
+            deliverymanPerDeliveryDay: shift.deliverymanPerDeliveryDay,
+            deliverymanPerDeliveryNight: shift.deliverymanPerDeliveryNight,
+            isWeekendRate: shift.isWeekendRate,
             logs: [],
           },
         });

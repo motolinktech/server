@@ -65,11 +65,17 @@ See `prisma/schema.prisma` for full model definitions. Below are models that aff
   - trackingConnectedAt: DateTime?
   - deliverymanAmountDay: Decimal(16,2) (default 0) — payment amount for daytime shifts
   - deliverymanAmountNight: Decimal(16,2) (default 0) — payment amount for nighttime shifts
+  - deliverymanPaymentType: String (default "") — payment key type (e.g. "mainPixKey", "account")
+  - deliverymenPaymentValue: String (default "") — payment value string (matches `deliverymanPaymentType`)
+  - paymentForm: String (default "DAILY")
+  - guaranteedQuantityDay: Int (default 0)
+  - guaranteedQuantityNight: Int (default 0)
+  - deliverymanPerDeliveryDay: Decimal(16,2) (default 0)
+  - deliverymanPerDeliveryNight: Decimal(16,2) (default 0)
+  - isWeekendRate: Boolean (default false)
   - updatedAt, createdAt
   - relations: `deliveryman`, `client`, `paymentRequests`, `invites`
   - indexes: [clientId, shiftDate], [deliverymanId, shiftDate], [inviteToken]
-  - deliverymanPaymentType: String — (e.g. "mainPixKey" | "account" ) indicates how the deliveryman is paid
-  - deliverymenPaymentValue: String — string value representing the payment metric (matches `deliverymanPaymentType`, e.g. "pix-key-asda")
 
 - `PaymentRequest`
   - id, workShiftSlotId, deliverymanId, amount (Decimal 16,2), status
@@ -230,7 +236,7 @@ Total endpoints documented: 67
 - Summary: Manage scheduled delivery shifts (create, list, lifecycle actions, check-in/out, mark absent, connect tracking, delete/cancel). Invitation sending/response lives under the `/invites` submodule.
 - Auth: Core slot routes require `isAuth` and `branchCheck` via `authPlugin`. Invite lookup/response is public (token required), while bulk invite sending requires auth (see Invites module below).
 
-Response format note: Most responses use `WorkShiftSlotResponse`, which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`) to strings. `GET /api/work-shift-slots/:id` returns the full `WorkShiftSlot` with `deliveryman` and `client` relations, but still coerces the Decimal amounts to strings.
+Response format note: Most responses use `WorkShiftSlotResponse`, which converts Decimal fields (`deliverymanAmountDay`, `deliverymanAmountNight`, `deliverymanPerDeliveryDay`, `deliverymanPerDeliveryNight`) to strings. `GET /api/work-shift-slots/:id` returns the full `WorkShiftSlot` with `deliveryman` and `client` relations, but the service still coerces those Decimal amounts to strings.
 
 Status enum values: `OPEN` | `INVITED` | `CONFIRMED` | `CHECKED_IN` | `PENDING_COMPLETION` | `COMPLETED` | `ABSENT` | `CANCELLED` | `REJECTED`
 
@@ -250,7 +256,7 @@ Endpoints (detailed):
   - Description: Create a new work shift slot for a client (optionally assign a deliveryman).
   - Auth: `isAuth`, `branchCheck`
   - Body (request): `WorkShiftSlotMutateSchema`
-    - `clientId` (string) — required
+    - `clientId` (string) — required by DB (schema marks optional, but create will fail without it)
     - `deliverymanId` (string) — optional
     - `contractType` (string) — required
     - `shiftDate` (string, ISO) — required
@@ -261,6 +267,16 @@ Endpoints (detailed):
     - `status` (string) — optional, defaults to `OPEN`
     - `isFreelancer` (boolean) — optional, default: false
     - `logs` (array) — optional
+    - `deliverymanAmountDay` (number) — optional, default: 0
+    - `deliverymanAmountNight` (number) — optional, default: 0
+    - `deliverymanPaymentType` (string) — optional
+    - `deliverymenPaymentValue` (string) — optional
+    - `paymentForm` (string) — optional, default: "DAILY"
+    - `guaranteedQuantityDay` (number) — optional, default: 0
+    - `guaranteedQuantityNight` (number) — optional, default: 0
+    - `deliverymanPerDeliveryDay` (number) — optional, default: 0
+    - `deliverymanPerDeliveryNight` (number) — optional, default: 0
+    - `isWeekendRate` (boolean) — optional, default: false
   - Time normalization:
     - `startTime` and `endTime` are normalized to the provided `shiftDate` day.
     - If `endTime` is the same as or earlier than `startTime`, it is treated as overnight and stored on the next day.
@@ -282,7 +298,13 @@ Endpoints (detailed):
       "deliverymanAmountDay": "150.00",
       "deliverymanAmountNight": "0",
       "deliverymanPaymentType": "per_shift",
-      "deliverymenPaymentValue": "150.00"
+      "deliverymenPaymentValue": "150.00",
+      "paymentForm": "DAILY",
+      "guaranteedQuantityDay": 0,
+      "guaranteedQuantityNight": 0,
+      "deliverymanPerDeliveryDay": "8.50",
+      "deliverymanPerDeliveryNight": "0",
+      "isWeekendRate": false
     }
     ```
 
@@ -306,6 +328,10 @@ Endpoints (detailed):
     - If `startDate` or `endDate` is provided, those are used to build the date range (supports ISO or `YYYY-MM-DD`); date-only values are normalized to start/end of day.
     - If only one date is provided, the range is that single day.
     - If no dates are provided, falls back to `month`/`week`, and finally to the current week (Mon–Sun).
+  - Errors:
+    - 400 "startDate inválido. Use formato ISO ou YYYY-MM-DD."
+    - 400 "endDate inválido. Use formato ISO ou YYYY-MM-DD."
+    - 400 "endDate não pode ser anterior a startDate."
   - Response 200: `{ data: WorkShiftSlotResponse[] (with deliveryman{ id,name } + client{ id,name }), count: number }`
   - Note: Items in `data` include `checkInAt` and `checkOutAt` (nullable ISO-8601 timestamps) when present.
   - Example query: `?page=1&limit=20&groupId=01JHRZ5K8MGRP01&startDate=2026-01-13&endDate=2026-01-19&period[]=daytime`
@@ -334,6 +360,7 @@ Endpoints (detailed):
     - If only `endDate` provided, `startDate` defaults to start of that same day
     - If format is `YYYY-MM-DD`, date is normalized to start/end of day respectively
   - Response 200: `Record<string, WorkShiftSlotResponse[]>` keyed by client name. Each slot includes `deliveryman` (nullable id/name).
+  - Note: If the group has no clients, the response is an empty object (`{}`) instead of an error.
   - Errors:
     - 400 "startDate inválido. Use formato ISO ou YYYY-MM-DD." — if `startDate` cannot be parsed
     - 400 "endDate inválido. Use formato ISO ou YYYY-MM-DD." — if `endDate` cannot be parsed
@@ -437,7 +464,7 @@ Action endpoints (stateful operations):
 
 Notes & behavior details:
 - Date/time fields: route validation expects ISO strings for `shiftDate`, `startTime`, `endTime`. The service normalizes `startTime`/`endTime` to the `shiftDate` day and bumps overnight `endTime` to the next day. Responses use `Date` types (from generated Prismabox schemas).
-- Decimal fields: `deliverymanAmountDay` and `deliverymanAmountNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
+- Decimal fields: `deliverymanAmountDay`, `deliverymanAmountNight`, `deliverymanPerDeliveryDay`, and `deliverymanPerDeliveryNight` are Prisma `Decimal(16,2)` in DB but converted to strings in API responses.
  - Check-in / check-out flow:
    - `POST /api/work-shift-slots/:id/check-in` sets `status = CHECKED_IN` and `checkInAt = <now>`; the response includes the `checkInAt` value (nullable before action).
    - `POST /api/work-shift-slots/:id/check-out` sets `status = PENDING_COMPLETION` and `checkOutAt = <now>`; the response includes the `checkOutAt` value (nullable before action).

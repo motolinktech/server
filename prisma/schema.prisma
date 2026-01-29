@@ -236,12 +236,18 @@ model WorkShiftSlot {
   inviteExpiresAt         DateTime?
   trackingConnected       Boolean          @default(false)
   trackingConnectedAt     DateTime?
-  deliverymanAmountDay    Decimal          @default(0) @db.Decimal(16, 2)
-  deliverymanAmountNight  Decimal          @default(0) @db.Decimal(16, 2)
-  deliverymanPaymentType  String           @default("")
-  deliverymenPaymentValue String           @default("")
-  updatedAt               DateTime         @updatedAt
-  createdAt               DateTime         @default(now())
+  deliverymanAmountDay      Decimal          @default(0) @db.Decimal(16, 2)
+  deliverymanAmountNight    Decimal          @default(0) @db.Decimal(16, 2)
+  deliverymanPaymentType    String           @default("")
+  deliverymenPaymentValue   String           @default("")
+  paymentForm               String           @default("DAILY")
+  guaranteedQuantityDay     Int              @default(0)
+  guaranteedQuantityNight   Int              @default(0)
+  deliverymanPerDeliveryDay   Decimal        @default(0) @db.Decimal(16, 2)
+  deliverymanPerDeliveryNight Decimal        @default(0) @db.Decimal(16, 2)
+  isWeekendRate             Boolean          @default(false)
+  updatedAt                 DateTime         @updatedAt
+  createdAt                 DateTime         @default(now())
   paymentRequests         PaymentRequest[]
   invites                 Invite[]
 
