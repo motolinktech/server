@@ -107,15 +107,16 @@ export function whatsappService() {
     const clientAddress = `${client.street}, ${client.number} - ${client.neighborhood}`;
     const shiftPeriod = `${dayjs(slot.startTime).tz().format("HH:mm")} às ${dayjs(slot.endTime).tz().format("HH:mm")}`;
 
-    const message = `👋🏻 Olá, ${deliveryman.name}, você foi convocado para uma escala de prestação de serviço na modalidade entrega no dia *${dayjs(slot.shiftDate).tz().format("DD/MM/YYYY")}*.  Gostaria de participar?\n
-📄 Informações da Escala:\n
+    const message = `👋🏻 Olá, ${deliveryman.name}. Tudo bem? \n
+Você está convidado, de forma eventual e facultativa, a manifestar interesse em uma prestação de serviço autônoma, na modalidade entrega, na data abaixo descrita.
+A participação não é obrigatória, não gera exclusividade, subordinação, habitualidade ou qualquer tipo de vínculo empregatício, tratando-se de atividade pontual, conforme sua disponibilidade e livre escolha.\n\n
+📄 Informações da Prestação de Serviço:
 Data: ${dayjs(slot.shiftDate).tz().format("DD/MM/YYYY")}
 Cliente: ${client.name}
-Motoboy: ${deliveryman.name}
-Endereço: ${clientAddress}
-Escala: ${shiftPeriod}
-\n
-Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:\n
+Prestador: ${deliveryman.name}
+Local de apoio: ${clientAddress}
+Período estimado: ${shiftPeriod}\n\n
+Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do link abaixo:\n\n
 👉 ${confirmationUrl}`;
 
     return sendMessage({
