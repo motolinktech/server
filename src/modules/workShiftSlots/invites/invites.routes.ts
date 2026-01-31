@@ -20,10 +20,14 @@ const WorkShiftSlotResponse = t.Composite([
     "invites",
     "deliverymanAmountDay",
     "deliverymanAmountNight",
+    "deliverymanPerDeliveryDay",
+    "deliverymanPerDeliveryNight",
   ]),
   t.Object({
     deliverymanAmountDay: t.String(),
     deliverymanAmountNight: t.String(),
+    deliverymanPerDeliveryDay: t.String(),
+    deliverymanPerDeliveryNight: t.String(),
   }),
 ]);
 
