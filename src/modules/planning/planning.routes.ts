@@ -27,7 +27,17 @@ export const planningRoutes = new Elysia({
         query: ListPlanningsSchema,
         response: {
           200: t.Object({
-            data: t.Array(PlanningResponse),
+            data: t.Array(
+              t.Composite([
+                PlanningResponse,
+                t.Object({
+                  client: t.Object({
+                    id: t.String(),
+                    name: t.String(),
+                  }),
+                }),
+              ]),
+            ),
             count: t.Number(),
           }),
         },

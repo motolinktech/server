@@ -538,15 +538,142 @@ Endpoints (detailed):
 - DELETE `/api/payment-requests/:id` — Auth + branchCheck
 
 **Planning** (`/api/planning`)
-- POST `/api/planning` — Auth + branchCheck
-- GET `/api/planning` — Auth + branchCheck
-- GET `/api/planning/:id` — Auth + branchCheck
-- PUT `/api/planning/:id` — Auth + branchCheck
-- DELETE `/api/planning/:id` — Auth + branchCheck
+- Summary: Manage delivery planning records. Each planning defines how many deliverymen are expected for a specific client on a given date and period (daytime/nighttime).
+- Auth: All endpoints require `isAuth` and `branchCheck`.
 
-Notes on `Planning` payloads:
-- `PlanningMutateSchema` fields: `clientId: string`, `branchId: string`, `plannedDate: string (ISO)`, `plannedCount: number`, `period: 'daytime' | 'nighttime'`
-- Unique constraint in DB: `@@unique([clientId, plannedDate, period])` — creating duplicates will raise AppError/validation from service layer.
+Database model (`Planning`):
+- `id`: String (uuid(7))
+- `clientId`: String (FK to Client)
+- `branchId`: String
+- `plannedDate`: DateTime
+- `plannedCount`: Int
+- `period`: String (default "diurno") — values: `daytime` | `nighttime`
+- `updatedAt`: DateTime
+- `createdAt`: DateTime
+- Unique constraint: `@@unique([clientId, plannedDate, period])`
+
+Endpoints (detailed):
+
+- POST `/api/planning`
+  - Description: Create a new planning record for a client.
+  - Auth: `isAuth`, `branchCheck`
+  - Body (`PlanningMutateSchema` without id):
+    - `clientId` (string) — required
+    - `branchId` (string) — required
+    - `plannedDate` (string, ISO) — required, error: "Data planejada é obrigatória"
+    - `plannedCount` (number) — required, minimum: 0, error: "Quantidade deve ser maior ou igual a 0"
+    - `period` (string) — required, values: `daytime` | `nighttime`, error: "Período é obrigatório (diurno ou noturno)"
+  - Business rules:
+    - Cannot create planning for past dates
+    - Client must exist and not be deleted
+    - Duplicate (clientId, plannedDate, period) not allowed
+  - Response 200: `PlanningResponse` (Planning without client relation)
+  - Errors:
+    - 400 "Não é permitido criar planejamentos para datas passadas."
+    - 404 "Cliente não encontrado."
+    - 400 "Cliente foi deletado."
+    - 400 "Já existe um planejamento para este cliente, data e período."
+  - Example request body:
+    ```json
+    {
+      "clientId": "01JHRZ5K8MABCDE",
+      "branchId": "01JHRZ5K8MBRNCH",
+      "plannedDate": "2026-02-15",
+      "plannedCount": 5,
+      "period": "daytime"
+    }
+    ```
+  - Example response:
+    ```json
+    {
+      "id": "01JHRZ5K8MPLNNG",
+      "clientId": "01JHRZ5K8MABCDE",
+      "branchId": "01JHRZ5K8MBRNCH",
+      "plannedDate": "2026-02-15T00:00:00.000Z",
+      "plannedCount": 5,
+      "period": "daytime",
+      "updatedAt": "2026-02-01T10:30:00.000Z",
+      "createdAt": "2026-02-01T10:30:00.000Z"
+    }
+    ```
+
+- GET `/api/planning`
+  - Description: List planning records with pagination and filters.
+  - Auth: `isAuth`, `branchCheck`
+  - Query params (`ListPlanningsSchema`):
+    - `page` (number) — optional, default: 1
+    - `limit` (number) — optional, default: PAGE_SIZE (env) or 20
+    - `clientId` (string) — optional, filter by client
+    - `branchId` (string) — optional, filter by branch
+    - `groupId` (string) — optional, filter by client's group (uses `client.groupId`)
+    - `startDate` (string) — optional, ISO or YYYY-MM-DD, filters `plannedDate >= startDate`
+    - `endDate` (string) — optional, ISO or YYYY-MM-DD, filters `plannedDate <= endDate`
+    - `period` (string) — optional, values: `daytime` | `nighttime`
+  - Response 200:
+    ```json
+    {
+      "data": [
+        {
+          "id": "01JHRZ5K8MPLNNG",
+          "clientId": "01JHRZ5K8MABCDE",
+          "branchId": "01JHRZ5K8MBRNCH",
+          "plannedDate": "2026-02-15T00:00:00.000Z",
+          "plannedCount": 5,
+          "period": "daytime",
+          "updatedAt": "2026-02-01T10:30:00.000Z",
+          "createdAt": "2026-02-01T10:30:00.000Z",
+          "client": {
+            "id": "01JHRZ5K8MABCDE",
+            "name": "Restaurante Bom Sabor"
+          }
+        }
+      ],
+      "count": 1
+    }
+    ```
+  - Note: Results ordered by `plannedDate` ascending. Each item includes `client: { id, name }`.
+  - Example query: `?page=1&limit=20&groupId=01JHRZ5K8MGRP01&startDate=2026-02-01&endDate=2026-02-28&period=daytime`
+
+- GET `/api/planning/:id`
+  - Description: Retrieve a single planning record by ID.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Response 200: `PlanningResponse`
+  - Errors: 404 "Planejamento não encontrado."
+
+- PUT `/api/planning/:id`
+  - Description: Update an existing planning record. All fields except `id` are optional.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Body (partial `PlanningMutateSchema`):
+    - `clientId` (string) — optional
+    - `branchId` (string) — optional
+    - `plannedDate` (string, ISO) — optional
+    - `plannedCount` (number) — optional, minimum: 0
+    - `period` (string) — optional, values: `daytime` | `nighttime`
+  - Business rules:
+    - Cannot edit planning if the (existing or new) plannedDate is in the past
+  - Response 200: Updated `PlanningResponse`
+  - Errors:
+    - 404 "Planejamento não encontrado."
+    - 400 "Não é permitido editar planejamentos de datas passadas."
+  - Example request body:
+    ```json
+    {
+      "plannedCount": 8
+    }
+    ```
+
+- DELETE `/api/planning/:id`
+  - Description: Delete a planning record.
+  - Auth: `isAuth`, `branchCheck`
+  - Params: `id` (string)
+  - Business rules:
+    - Cannot delete planning for past dates
+  - Response 200: `{ "message": "Planejamento deletado com sucesso." }`
+  - Errors:
+    - 404 "Planejamento não encontrado."
+    - 400 "Não é permitido deletar planejamentos de datas passadas."
 
 ---
 

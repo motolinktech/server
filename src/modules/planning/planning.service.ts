@@ -137,6 +137,7 @@ export function planningService() {
         limit = PAGE_SIZE,
         clientId,
         branchId,
+        groupId,
         startDate,
         endDate,
         period,
@@ -145,6 +146,7 @@ export function planningService() {
       const where: Prisma.PlanningWhereInput = {
         ...(clientId ? { clientId } : {}),
         ...(branchId ? { branchId } : {}),
+        ...(groupId ? { client: { groupId } } : {}),
         ...(period ? { period } : {}),
         ...(startDate || endDate
           ? {
@@ -166,6 +168,14 @@ export function planningService() {
           skip: (page - 1) * limit,
           where,
           orderBy: { plannedDate: "asc" },
+          include: {
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
         }),
         db.planning.count({ where }),
       ]);

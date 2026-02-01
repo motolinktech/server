@@ -23,6 +23,7 @@ export const ListPlanningsSchema = t.Object({
   limit: t.Optional(t.Number()),
   clientId: t.Optional(t.String()),
   branchId: t.Optional(t.String()),
+  groupId: t.Optional(t.String()),
   startDate: t.Optional(t.String()),
   endDate: t.Optional(t.String()),
   period: t.Optional(
