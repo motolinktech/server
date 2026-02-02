@@ -627,17 +627,14 @@ export function workShiftSlotsService() {
 
       // 2. Process each shift
       for (const shift of sourceShifts) {
-        // Calculate new times (same hours, different date)
-        const newStartTime = dayjs(targetDate)
-          .hour(dayjs(shift.startTime).hour())
-          .minute(dayjs(shift.startTime).minute())
-          .second(0)
-          .toDate();
-        const newEndTime = dayjs(targetDate)
-          .hour(dayjs(shift.endTime).hour())
-          .minute(dayjs(shift.endTime).minute())
-          .second(0)
-          .toDate();
+        // Calculate new times using normalizeShiftTimes for timezone consistency
+        const normalizedTimes = normalizeShiftTimes({
+          shiftDate: targetDate,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+        });
+        const newStartTime = normalizedTimes.startTime;
+        const newEndTime = normalizedTimes.endTime;
 
         let deliverymanId: string | null = shift.deliverymanId;
         let status = shift.status;
@@ -679,7 +676,7 @@ export function workShiftSlotsService() {
             clientId: shift.clientId,
             deliverymanId,
             contractType: shift.contractType,
-            shiftDate: dayjs(targetDate).startOf("day").toDate(),
+            shiftDate: normalizedTimes.shiftDate,
             startTime: newStartTime,
             endTime: newEndTime,
             period: shift.period,
