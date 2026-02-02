@@ -17,6 +17,8 @@ import type {
 } from "./workShiftSlots.schema";
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
+const WORK_SHIFT_TZ = "America/Sao_Paulo";
+const HAS_EXPLICIT_OFFSET_REGEX = /(?:[zZ]|[+-]\d{2}:?\d{2})$/;
 
 function formatWorkShiftSlotResponse(slot: any) {
   if (!slot) return slot;
@@ -42,9 +44,12 @@ function normalizeShiftTimes(input: {
   startTime: string | Date;
   endTime: string | Date;
 }) {
-  const shiftDay = dayjs.tz(input.shiftDate, "America/Sao_Paulo");
-  const startCandidate = dayjs.tz(input.startTime, "America/Sao_Paulo");
-  const endCandidate = dayjs.tz(input.endTime, "America/Sao_Paulo");
+  const shiftDay = parseToWorkShiftTimezone(
+    input.shiftDate,
+    "shiftDate",
+  ).startOf("day");
+  const startCandidate = parseToWorkShiftTimezone(input.startTime, "startTime");
+  const endCandidate = parseToWorkShiftTimezone(input.endTime, "endTime");
 
   const startTime = shiftDay
     .hour(startCandidate.hour())
@@ -67,6 +72,32 @@ function normalizeShiftTimes(input: {
     startTime: startTime.toDate(),
     endTime: endTime.toDate(),
   };
+}
+
+function parseToWorkShiftTimezone(
+  value: string | Date,
+  fieldName: "shiftDate" | "startTime" | "endTime",
+) {
+  if (value instanceof Date) {
+    const parsedDate = dayjs(value).tz(WORK_SHIFT_TZ);
+
+    if (!parsedDate.isValid()) {
+      throw new AppError(`${fieldName} inválido.`, 400);
+    }
+
+    return parsedDate;
+  }
+
+  const rawValue = value.trim();
+  const parsed = HAS_EXPLICIT_OFFSET_REGEX.test(rawValue)
+    ? dayjs(rawValue).tz(WORK_SHIFT_TZ)
+    : dayjs.tz(rawValue, WORK_SHIFT_TZ);
+
+  if (!parsed.isValid()) {
+    throw new AppError(`${fieldName} inválido.`, 400);
+  }
+
+  return parsed;
 }
 export function workShiftSlotsService() {
   return {
