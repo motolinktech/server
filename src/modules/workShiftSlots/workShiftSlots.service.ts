@@ -42,9 +42,9 @@ function normalizeShiftTimes(input: {
   startTime: string | Date;
   endTime: string | Date;
 }) {
-  const shiftDay = dayjs(input.shiftDate);
-  const startCandidate = dayjs(input.startTime);
-  const endCandidate = dayjs(input.endTime);
+  const shiftDay = dayjs.tz(input.shiftDate, "America/Sao_Paulo");
+  const startCandidate = dayjs.tz(input.startTime, "America/Sao_Paulo");
+  const endCandidate = dayjs.tz(input.endTime, "America/Sao_Paulo");
 
   const startTime = shiftDay
     .hour(startCandidate.hour())
