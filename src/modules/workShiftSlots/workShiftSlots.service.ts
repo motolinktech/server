@@ -668,7 +668,6 @@ export function workShiftSlotsService() {
         const newEndTime = normalizedTimes.endTime;
 
         let deliverymanId: string | null = shift.deliverymanId;
-        let status = shift.status;
 
         // 3. Check for conflicts if shift has a deliveryman
         if (shift.deliverymanId) {
@@ -697,7 +696,6 @@ export function workShiftSlotsService() {
               conflictingShiftId: conflictingShift.id,
             });
             deliverymanId = null;
-            status = workShiftSlotStatusEnum.OPEN;
           }
         }
 
@@ -713,7 +711,9 @@ export function workShiftSlotsService() {
             period: shift.period,
             auditStatus: shift.auditStatus,
             isFreelancer: shift.isFreelancer,
-            status: deliverymanId ? status : workShiftSlotStatusEnum.OPEN,
+            status: deliverymanId
+              ? workShiftSlotStatusEnum.INVITED
+              : workShiftSlotStatusEnum.OPEN,
             deliverymanAmountDay: shift.deliverymanAmountDay,
             deliverymanAmountNight: shift.deliverymanAmountNight,
             deliverymanPaymentType: shift.deliverymanPaymentType,
