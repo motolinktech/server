@@ -21,9 +21,10 @@ const app = new Elysia()
   })
   .use(
     cors({
-      origin: isProd
-        ? "https://webapp-motolink-d9a92e605d18.herokuapp.com"
-        : true,
+      origin:
+        isProd && process.env.WEB_APP_URL
+          ? process.env.WEB_APP_URL
+          : true,
       credentials: true,
     }),
   )

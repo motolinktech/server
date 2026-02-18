@@ -1,0 +1,14 @@
+node_modules
+.git
+.github
+.vscode
+ai
+generated
+server
+scripts
+.claude
+.env*
+!.env.example
+*.md
+Procfile
+docker-compose.yml
