@@ -63,12 +63,14 @@ model HistoryTrace {
 }
 
 model Branch {
-  id          String        @id @default(uuid(7))
-  name        String
-  code        String        @unique
-  address     String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String        @id @default(uuid(7))
+  name            String
+  code            String        @unique
+  address         String?
+  whatsappUrl     String?
+  whatsappApiKey  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   groups      Group[]
   regions     Region[]
   deliverymen Deliveryman[]

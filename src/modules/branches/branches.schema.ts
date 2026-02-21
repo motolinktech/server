@@ -18,6 +18,16 @@ export const BranchMutateSchema = t.Object({
       maxLength: 1024,
     }),
   ),
+  whatsappUrl: t.Optional(
+    t.String({
+      maxLength: 1024,
+    }),
+  ),
+  whatsappApiKey: t.Optional(
+    t.String({
+      maxLength: 1024,
+    }),
+  ),
 });
 
 export type BranchMutateDTO = Static<typeof BranchMutateSchema>;

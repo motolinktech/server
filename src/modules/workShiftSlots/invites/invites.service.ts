@@ -48,6 +48,9 @@ function formatWorkShiftSlotResponse(slot: any) {
 }
 
 export function invitesService() {
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const randomInviteDelayMs = () => 2000 + Math.floor(Math.random() * 2001);
+
   const buildConfirmationUrl = (inviteId: string, token: string): string => {
     const urlParams = new URLSearchParams({
       token,
@@ -278,6 +281,10 @@ export function invitesService() {
             reason:
               error instanceof Error ? error.message : "Erro desconhecido",
           });
+        }
+
+        if (slot !== slots[slots.length - 1]) {
+          await sleep(randomInviteDelayMs());
         }
       }
 

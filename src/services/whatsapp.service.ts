@@ -1,14 +1,9 @@
 import { dayjs } from "../utils/dayjs";
 import { db } from "./database.service";
 
-const WHATSAPP_WEBHOOK_URL =
-  "https://n8n-lk0sscsw44ok4ow8o0kk0o48.72.60.49.4.sslip.io/webhook/send-messages";
-
 interface SendMessageParams {
-  name: string;
   phone: string;
   message: string;
-  tipo: "interno" | "convite";
   branchId: string;
 }
 
@@ -41,7 +36,7 @@ export function whatsappService() {
   const sendMessage = async (params: SendMessageParams): Promise<boolean> => {
     const branch = await db.branch.findUnique({
       where: { id: params.branchId },
-      select: { code: true },
+      select: { whatsappUrl: true, whatsappApiKey: true },
     });
 
     if (!branch) {
@@ -49,32 +44,33 @@ export function whatsappService() {
       return false;
     }
 
+    if (!branch.whatsappUrl) {
+      console.warn(
+        "[whatsappService] Branch has no whatsappUrl configured:",
+        params.branchId,
+      );
+      return false;
+    }
+
     const phoneWithPrefix = normalizePhone(params.phone);
 
     const requestBody = {
-      messages: [
-        {
-          nome: params.name,
-          telefone: phoneWithPrefix,
-          mensagem: params.message,
-          tipo: params.tipo,
-          filial: branch.code,
-        },
-      ],
+      chatId: `${phoneWithPrefix}@c.us`,
+      text: params.message,
+      session: "default",
     };
 
+    const url = `${branch.whatsappUrl}/api/sendText`;
+
     console.log("[whatsappService] Sending message to:", phoneWithPrefix);
-    console.log(
-      "[whatsappService] Request body:",
-      JSON.stringify(requestBody, null, 2),
-    );
+    console.log("[whatsappService] Endpoint:", url);
 
     try {
-      const response = await fetch(WHATSAPP_WEBHOOK_URL, {
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "motolink-api-token": process.env.WHATSAPP_TOKEN || "",
+          "X-Api-Key": branch.whatsappApiKey || "",
         },
         body: JSON.stringify(requestBody),
       });
@@ -120,10 +116,8 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
 👉 ${confirmationUrl}`;
 
     return sendMessage({
-      name: deliveryman.name,
       phone: deliveryman.phone,
       message,
-      tipo: "convite",
       branchId,
     });
   };
@@ -136,10 +130,8 @@ Caso tenha interesse, você poderá aceitar ou recusar livremente por meio do li
     const message = `Olá, ${user.name}!\nSua conta foi criada. Para configurar sua senha, acesse o link abaixo:\n${passwordSetupLink}\nEste link expira em 24 horas.`;
 
     return sendMessage({
-      name: user.name,
       phone: user.phone,
       message,
-      tipo: "interno",
       branchId,
     });
   };
