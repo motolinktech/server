@@ -67,7 +67,7 @@ export const invitesRoutes = new Elysia({
     },
   )
   .guard({ isAuth: true, branchCheck: true }, (app) =>
-    app.post("/", ({ body, currentBranch }) => service.sendInvites(body, currentBranch), {
+    app.post("/", ({ body, currentBranch, user }) => service.sendInvites(body, currentBranch, user!.id), {
       body: SendBulkInvitesSchema,
       response: {
         200: SendBulkInvitesResponseSchema,

@@ -42,7 +42,7 @@ export const workShiftSlotsRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true, branchCheck: true }, (app) =>
     app
-      .post("/", ({ body }) => service.create(body), {
+      .post("/", ({ body, user }) => service.create(body, user!.id), {
         body: t.Omit(WorkShiftSlotMutateSchema, ["id"]),
         response: {
           200: WorkShiftSlotResponse,
@@ -128,7 +128,7 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .put(
         "/:id",
-        ({ params, body }) => service.edit({ ...body, id: params.id }),
+        ({ params, body, user }) => service.edit({ ...body, id: params.id }, user!.id),
         {
           body: t.Omit(WorkShiftSlotMutateSchema, ["id"]),
           response: {
@@ -138,7 +138,7 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/check-in",
-        ({ params, body }) => service.checkIn(params.id, body),
+        ({ params, body, user }) => service.checkIn(params.id, body, user!.id),
         {
           body: CheckInOutSchema,
           response: {
@@ -148,7 +148,7 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/check-out",
-        ({ params, body }) => service.checkOut(params.id, body),
+        ({ params, body, user }) => service.checkOut(params.id, body, user!.id),
         {
           body: CheckInOutSchema,
           response: {
@@ -158,7 +158,7 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/confirm-completion",
-        ({ params }) => service.confirmCompletion(params.id),
+        ({ params, user }) => service.confirmCompletion(params.id, user!.id),
         {
           response: {
             200: WorkShiftSlotResponse,
@@ -167,7 +167,7 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/mark-absent",
-        ({ params, body }) => service.markAbsent(params.id, body),
+        ({ params, body, user }) => service.markAbsent(params.id, body, user!.id),
         {
           body: MarkAbsentSchema,
           response: {
@@ -175,7 +175,7 @@ export const workShiftSlotsRoutes = new Elysia({
           },
         },
       )
-      .delete("/:id", ({ params }) => service.delete(params.id), {
+      .delete("/:id", ({ params, user }) => service.delete(params.id, user!.id), {
         params: t.Object({
           id: t.String(),
         }),
@@ -185,14 +185,14 @@ export const workShiftSlotsRoutes = new Elysia({
       })
       .post(
         "/:id/connect-tracking",
-        ({ params }) => service.connectTracking(params.id),
+        ({ params, user }) => service.connectTracking(params.id, user!.id),
         {
           response: {
             200: WorkShiftSlotResponse,
           },
         },
       )
-      .post("/copy", ({ body }) => service.copyShifts(body), {
+      .post("/copy", ({ body, user }) => service.copyShifts(body, user!.id), {
         body: CopyWorkShiftSlotsSchema,
         response: {
           200: t.Object({

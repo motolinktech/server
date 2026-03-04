@@ -101,7 +101,7 @@ function parseToWorkShiftTimezone(
 }
 export function workShiftSlotsService() {
   return {
-    async create(data: Omit<WorkShiftSlotMutateDTO, "id">) {
+    async create(data: Omit<WorkShiftSlotMutateDTO, "id">, userId: string) {
       const normalizedTimes = normalizeShiftTimes({
         shiftDate: data.shiftDate,
         startTime: data.startTime,
@@ -120,7 +120,7 @@ export function workShiftSlotsService() {
           shiftDate: normalizedTimes.shiftDate,
           startTime: normalizedTimes.startTime,
           endTime: normalizedTimes.endTime,
-          logs: data.logs || [],
+          logs: [{ action: "CREATED", timestamp: new Date(), userId }],
           deliverymanAmountDay: data.deliverymanAmountDay,
           deliverymanAmountNight: data.deliverymanAmountNight,
           deliverymanPaymentType: data.deliverymanPaymentType,
@@ -137,7 +137,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(workShiftSlot);
     },
 
-    async edit(data: Partial<WorkShiftSlotMutateDTO>) {
+    async edit(data: Partial<WorkShiftSlotMutateDTO>, userId: string) {
       const existingWorkShiftSlot = await db.workShiftSlot.findUnique({
         where: { id: data.id },
       });
@@ -178,6 +178,8 @@ export function workShiftSlotsService() {
           ? new Date(data.checkOutAt)
           : null;
       }
+
+      updateData.logs = { push: { action: "UPDATED", timestamp: new Date(), userId } };
 
       const updatedWorkShiftSlot = await db.workShiftSlot.update({
         where: { id: data.id },
@@ -422,7 +424,7 @@ export function workShiftSlotsService() {
       return result;
     },
 
-    async checkIn(slotId: string, data: CheckInOutDTO) {
+    async checkIn(slotId: string, data: CheckInOutDTO, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -454,6 +456,7 @@ export function workShiftSlotsService() {
               action: "CHECK_IN",
               timestamp: checkInTimestamp,
               location: data.location,
+              userId,
             },
           },
         },
@@ -464,7 +467,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updatedSlot);
     },
 
-    async checkOut(slotId: string, data: CheckInOutDTO) {
+    async checkOut(slotId: string, data: CheckInOutDTO, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -496,6 +499,7 @@ export function workShiftSlotsService() {
               action: "CHECK_OUT",
               timestamp: checkOutTimestamp,
               location: data.location,
+              userId,
             },
           },
         },
@@ -509,7 +513,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updatedSlot);
     },
 
-    async confirmCompletion(slotId: string) {
+    async confirmCompletion(slotId: string, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -533,6 +537,7 @@ export function workShiftSlotsService() {
             push: {
               action: "CONFIRM_COMPLETION",
               timestamp: new Date(),
+              userId,
             },
           },
         },
@@ -541,7 +546,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updatedSlot);
     },
 
-    async markAbsent(slotId: string, data: MarkAbsentDTO) {
+    async markAbsent(slotId: string, data: MarkAbsentDTO, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -561,6 +566,7 @@ export function workShiftSlotsService() {
               action: "MARKED_ABSENT",
               timestamp: new Date(),
               reason: data.reason,
+              userId,
             },
           },
         },
@@ -569,7 +575,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updatedSlot);
     },
 
-    async connectTracking(slotId: string) {
+    async connectTracking(slotId: string, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -587,6 +593,7 @@ export function workShiftSlotsService() {
             push: {
               action: "TRACKING_CONNECTED",
               timestamp: new Date(),
+              userId,
             },
           },
         },
@@ -595,7 +602,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updatedSlot);
     },
 
-    async delete(slotId: string) {
+    async delete(slotId: string, userId: string) {
       const slot = await db.workShiftSlot.findUnique({
         where: { id: slotId },
       });
@@ -620,6 +627,7 @@ export function workShiftSlotsService() {
             push: {
               action: "CANCELLED",
               timestamp: new Date(),
+              userId,
             },
           },
         },
@@ -628,7 +636,7 @@ export function workShiftSlotsService() {
       return formatWorkShiftSlotResponse(updated);
     },
 
-    async copyShifts(data: CopyWorkShiftSlotsDTO) {
+    async copyShifts(data: CopyWorkShiftSlotsDTO, userId: string) {
       const { sourceDate, targetDate, clientId } = data;
 
       // 1. Fetch source shifts (exclude CANCELLED)
@@ -724,7 +732,7 @@ export function workShiftSlotsService() {
             deliverymanPerDeliveryDay: shift.deliverymanPerDeliveryDay,
             deliverymanPerDeliveryNight: shift.deliverymanPerDeliveryNight,
             isWeekendRate: shift.isWeekendRate,
-            logs: [],
+            logs: [{ action: "COPIED", timestamp: new Date(), userId, sourceShiftId: shift.id }],
           },
         });
 

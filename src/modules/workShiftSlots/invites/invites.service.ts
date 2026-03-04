@@ -59,7 +59,7 @@ export function invitesService() {
     return `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
   };
 
-  const sendInviteForSlot = async (slot: SlotWithClient, branchId: string): Promise<void> => {
+  const sendInviteForSlot = async (slot: SlotWithClient, branchId: string, userId: string): Promise<void> => {
     if (!slot.deliverymanId) {
       throw new AppError("Turno não possui entregador atribuído.", 400);
     }
@@ -109,6 +109,7 @@ export function invitesService() {
             timestamp: new Date(),
             deliverymanId: slot.deliverymanId,
             inviteId: invite.id,
+            userId,
           },
         },
       },
@@ -141,6 +142,7 @@ export function invitesService() {
     async sendInvites(
       data: SendBulkInvitesDTO,
       branchId: string,
+      userId: string,
     ): Promise<SendBulkInvitesResponseDTO> {
       const { date, workShiftSlotId, groupId, clientId } = data;
 
@@ -199,7 +201,7 @@ export function invitesService() {
           deliverymanId: slot.deliverymanId,
           clientId: slot.clientId,
           client: slot.client,
-        }, branchId);
+        }, branchId, userId);
 
         return { sent: 1, failed: 0, errors: [] };
       }
@@ -272,7 +274,7 @@ export function invitesService() {
             deliverymanId: slot.deliverymanId,
             clientId: slot.clientId,
             client: slot.client,
-          }, branchId);
+          }, branchId, userId);
           sent++;
         } catch (error) {
           failed++;
@@ -387,6 +389,7 @@ export function invitesService() {
                 action: "INVITE_ACCEPTED",
                 timestamp: respondedAt,
                 inviteId: invite.id,
+                userId: null,
               },
             },
           },
@@ -416,6 +419,7 @@ export function invitesService() {
               action: "INVITE_REJECTED",
               timestamp: respondedAt,
               inviteId: invite.id,
+              userId: null,
             },
           },
         },
