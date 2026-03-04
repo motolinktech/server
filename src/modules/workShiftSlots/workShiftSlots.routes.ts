@@ -42,12 +42,21 @@ export const workShiftSlotsRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true, branchCheck: true }, (app) =>
     app
-      .post("/", ({ body, user }) => service.create(body, user!.id), {
-        body: t.Omit(WorkShiftSlotMutateSchema, ["id"]),
-        response: {
-          200: WorkShiftSlotResponse,
+      .post(
+        "/",
+        ({ body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.create(body, user!.id, ip);
         },
-      })
+        {
+          body: t.Omit(WorkShiftSlotMutateSchema, ["id"]),
+          response: {
+            200: WorkShiftSlotResponse,
+          },
+        },
+      )
       .get("/", ({ query }) => service.listAll(query), {
         query: ListWorkShiftSlotsSchema,
         response: {
@@ -128,7 +137,12 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .put(
         "/:id",
-        ({ params, body, user }) => service.edit({ ...body, id: params.id }, user!.id),
+        ({ params, body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.edit({ ...body, id: params.id }, user!.id, ip);
+        },
         {
           body: t.Omit(WorkShiftSlotMutateSchema, ["id"]),
           response: {
@@ -138,7 +152,12 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/check-in",
-        ({ params, body, user }) => service.checkIn(params.id, body, user!.id),
+        ({ params, body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.checkIn(params.id, body, user!.id, ip);
+        },
         {
           body: CheckInOutSchema,
           response: {
@@ -148,7 +167,12 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/check-out",
-        ({ params, body, user }) => service.checkOut(params.id, body, user!.id),
+        ({ params, body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.checkOut(params.id, body, user!.id, ip);
+        },
         {
           body: CheckInOutSchema,
           response: {
@@ -158,7 +182,12 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/confirm-completion",
-        ({ params, user }) => service.confirmCompletion(params.id, user!.id),
+        ({ params, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.confirmCompletion(params.id, user!.id, ip);
+        },
         {
           response: {
             200: WorkShiftSlotResponse,
@@ -167,7 +196,12 @@ export const workShiftSlotsRoutes = new Elysia({
       )
       .post(
         "/:id/mark-absent",
-        ({ params, body, user }) => service.markAbsent(params.id, body, user!.id),
+        ({ params, body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.markAbsent(params.id, body, user!.id, ip);
+        },
         {
           body: MarkAbsentSchema,
           response: {
@@ -175,43 +209,66 @@ export const workShiftSlotsRoutes = new Elysia({
           },
         },
       )
-      .delete("/:id", ({ params, user }) => service.delete(params.id, user!.id), {
-        params: t.Object({
-          id: t.String(),
-        }),
-        response: {
-          200: WorkShiftSlotResponse,
+      .delete(
+        "/:id",
+        ({ params, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.delete(params.id, user!.id, ip);
         },
-      })
+        {
+          params: t.Object({
+            id: t.String(),
+          }),
+          response: {
+            200: WorkShiftSlotResponse,
+          },
+        },
+      )
       .post(
         "/:id/connect-tracking",
-        ({ params, user }) => service.connectTracking(params.id, user!.id),
+        ({ params, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.connectTracking(params.id, user!.id, ip);
+        },
         {
           response: {
             200: WorkShiftSlotResponse,
           },
         },
       )
-      .post("/copy", ({ body, user }) => service.copyShifts(body, user!.id), {
-        body: CopyWorkShiftSlotsSchema,
-        response: {
-          200: t.Object({
-            copiedShifts: t.Array(WorkShiftSlotResponse),
-            warnings: t.Nullable(
-              t.Object({
-                message: t.String(),
-                conflictedShifts: t.Array(
-                  t.Object({
-                    sourceShiftId: t.String(),
-                    deliverymanId: t.String(),
-                    deliverymanName: t.String(),
-                    conflictingShiftId: t.String(),
-                  }),
-                ),
-              }),
-            ),
-          }),
+      .post(
+        "/copy",
+        ({ body, user, request, server }) => {
+          const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+            server?.requestIP(request)?.address;
+          return service.copyShifts(body, user!.id, ip);
         },
-      }),
+        {
+          body: CopyWorkShiftSlotsSchema,
+          response: {
+            200: t.Object({
+              copiedShifts: t.Array(WorkShiftSlotResponse),
+              warnings: t.Nullable(
+                t.Object({
+                  message: t.String(),
+                  conflictedShifts: t.Array(
+                    t.Object({
+                      sourceShiftId: t.String(),
+                      deliverymanId: t.String(),
+                      deliverymanName: t.String(),
+                      conflictingShiftId: t.String(),
+                    }),
+                  ),
+                }),
+              ),
+            }),
+          },
+        },
+      ),
   )
   .use(invitesRoutes);

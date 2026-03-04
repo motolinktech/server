@@ -48,7 +48,8 @@ function formatWorkShiftSlotResponse(slot: any) {
 }
 
 export function invitesService() {
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
   const randomInviteDelayMs = () => 2000 + Math.floor(Math.random() * 2001);
 
   const buildConfirmationUrl = (inviteId: string, token: string): string => {
@@ -59,7 +60,12 @@ export function invitesService() {
     return `${process.env.WEB_APP_URL}/confirmar-escala?${urlParams.toString()}`;
   };
 
-  const sendInviteForSlot = async (slot: SlotWithClient, branchId: string, userId: string): Promise<void> => {
+  const sendInviteForSlot = async (
+    slot: SlotWithClient,
+    branchId: string,
+    userId: string,
+    ip?: string,
+  ): Promise<void> => {
     if (!slot.deliverymanId) {
       throw new AppError("Turno não possui entregador atribuído.", 400);
     }
@@ -110,6 +116,7 @@ export function invitesService() {
             deliverymanId: slot.deliverymanId,
             inviteId: invite.id,
             userId,
+            ip,
           },
         },
       },
@@ -143,6 +150,7 @@ export function invitesService() {
       data: SendBulkInvitesDTO,
       branchId: string,
       userId: string,
+      ip?: string,
     ): Promise<SendBulkInvitesResponseDTO> {
       const { date, workShiftSlotId, groupId, clientId } = data;
 
@@ -191,17 +199,22 @@ export function invitesService() {
           throw new AppError("Turno não possui entregador atribuído.", 400);
         }
 
-        await sendInviteForSlot({
-          id: slot.id,
-          inviteToken: slot.inviteToken,
-          inviteExpiresAt: slot.inviteExpiresAt,
-          shiftDate: slot.shiftDate,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          deliverymanId: slot.deliverymanId,
-          clientId: slot.clientId,
-          client: slot.client,
-        }, branchId, userId);
+        await sendInviteForSlot(
+          {
+            id: slot.id,
+            inviteToken: slot.inviteToken,
+            inviteExpiresAt: slot.inviteExpiresAt,
+            shiftDate: slot.shiftDate,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            deliverymanId: slot.deliverymanId,
+            clientId: slot.clientId,
+            client: slot.client,
+          },
+          branchId,
+          userId,
+          ip,
+        );
 
         return { sent: 1, failed: 0, errors: [] };
       }
@@ -264,17 +277,22 @@ export function invitesService() {
 
       for (const slot of slots) {
         try {
-          await sendInviteForSlot({
-            id: slot.id,
-            inviteToken: slot.inviteToken,
-            inviteExpiresAt: slot.inviteExpiresAt,
-            shiftDate: slot.shiftDate,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            deliverymanId: slot.deliverymanId,
-            clientId: slot.clientId,
-            client: slot.client,
-          }, branchId, userId);
+          await sendInviteForSlot(
+            {
+              id: slot.id,
+              inviteToken: slot.inviteToken,
+              inviteExpiresAt: slot.inviteExpiresAt,
+              shiftDate: slot.shiftDate,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              deliverymanId: slot.deliverymanId,
+              clientId: slot.clientId,
+              client: slot.client,
+            },
+            branchId,
+            userId,
+            ip,
+          );
           sent++;
         } catch (error) {
           failed++;
@@ -342,6 +360,7 @@ export function invitesService() {
       inviteId: string,
       token: string,
       isAccepted: boolean,
+      ip?: string,
     ) {
       const invite = await db.invite.findUnique({
         where: { id: inviteId },
@@ -390,6 +409,7 @@ export function invitesService() {
                 timestamp: respondedAt,
                 inviteId: invite.id,
                 userId: null,
+                ip,
               },
             },
           },
@@ -420,6 +440,7 @@ export function invitesService() {
               timestamp: respondedAt,
               inviteId: invite.id,
               userId: null,
+              ip,
             },
           },
         },

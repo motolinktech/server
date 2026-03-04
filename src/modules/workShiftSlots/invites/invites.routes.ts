@@ -53,8 +53,17 @@ export const invitesRoutes = new Elysia({
   )
   .post(
     "/:inviteId/respond",
-    ({ params, query, body }) =>
-      service.respondToInvite(params.inviteId, query.token, body.isAccepted),
+    ({ params, query, body, request, server }) => {
+      const ip =
+        request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+        server?.requestIP(request)?.address;
+      return service.respondToInvite(
+        params.inviteId,
+        query.token,
+        body.isAccepted,
+        ip,
+      );
+    },
     {
       params: t.Object({
         inviteId: t.String(),
@@ -67,10 +76,19 @@ export const invitesRoutes = new Elysia({
     },
   )
   .guard({ isAuth: true, branchCheck: true }, (app) =>
-    app.post("/", ({ body, currentBranch, user }) => service.sendInvites(body, currentBranch, user!.id), {
-      body: SendBulkInvitesSchema,
-      response: {
-        200: SendBulkInvitesResponseSchema,
+    app.post(
+      "/",
+      ({ body, currentBranch, user, request, server }) => {
+        const ip =
+          request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+          server?.requestIP(request)?.address;
+        return service.sendInvites(body, currentBranch, user!.id, ip);
       },
-    }),
+      {
+        body: SendBulkInvitesSchema,
+        response: {
+          200: SendBulkInvitesResponseSchema,
+        },
+      },
+    ),
   );
