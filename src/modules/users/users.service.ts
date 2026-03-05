@@ -245,6 +245,64 @@ export function usersService() {
       return updatedUser;
     },
 
+    async resetAccess(id: string, branchId: string) {
+      const user = await db.user.findUnique({
+        where: { id },
+        omit: { password: true },
+      });
+
+      if (!user) {
+        throw new AppError("Usuário não encontrado.", 404);
+      }
+
+      if (user.status === statusEnum.PENDING) {
+        throw new AppError(
+          "Usuário já está pendente de configuração de senha.",
+          400,
+        );
+      }
+
+      await db.verificationToken.deleteMany({ where: { userId: id } });
+
+      const updatedUser = await db.user.update({
+        where: { id },
+        data: { password: null, status: statusEnum.PENDING },
+        omit: { password: true },
+      });
+
+      const token = await generateToken();
+
+      await db.verificationToken.create({
+        data: {
+          userId: id,
+          token,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const passwordSetupLink = `${process.env.WEB_APP_URL}/trocar-senha?token=${token}&userId=${id}`;
+
+      if (updatedUser.phone) {
+        void whatsappService().sendUsersInvite({
+          user: { name: updatedUser.name, phone: updatedUser.phone },
+          passwordSetupLink,
+          branchId,
+        });
+      }
+
+      void historyTraceService().create({
+        new: {
+          ...(updatedUser as unknown as Record<string, unknown>),
+          entityType: "User",
+        },
+        old: { ...(user as unknown as Record<string, unknown>), entityType: "User" },
+        userId: id,
+        action: historyTraceActionsEnum.EDIT,
+      });
+
+      return updatedUser;
+    },
+
     async update(
       id: string,
       data: Partial<Omit<UserMutateDTO, "id" | "password">>,

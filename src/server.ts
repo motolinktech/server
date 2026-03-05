@@ -22,9 +22,7 @@ const app = new Elysia()
   .use(
     cors({
       origin:
-        isProd && process.env.WEB_APP_URL
-          ? process.env.WEB_APP_URL
-          : true,
+        isProd && process.env.WEB_APP_URL ? process.env.WEB_APP_URL : true,
       credentials: true,
     }),
   )

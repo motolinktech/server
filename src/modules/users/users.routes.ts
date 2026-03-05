@@ -19,13 +19,17 @@ export const usersRoutes = new Elysia({
   .use(authPlugin)
   .guard({ isAuth: true }, (app) =>
     app
-      .post("/", ({ body, currentBranch }) => service.create({ ...body }, currentBranch), {
-        body: t.Omit(UserMutateSchema, ["id"]),
-        response: {
-          200: t.Omit(UserPlain, ["password"]),
+      .post(
+        "/",
+        ({ body, currentBranch }) => service.create({ ...body }, currentBranch),
+        {
+          body: t.Omit(UserMutateSchema, ["id"]),
+          response: {
+            200: t.Omit(UserPlain, ["password"]),
+          },
+          branchCheck: true,
         },
-        branchCheck: true,
-      })
+      )
       .get(
         "/",
         ({ query, currentBranch }) => service.list({ ...query, currentBranch }),
@@ -79,7 +83,21 @@ export const usersRoutes = new Elysia({
           200: t.Omit(UserPlain, ["password"]),
         },
         branchCheck: true,
-      }),
+      })
+      .post(
+        "/:id/reset-access",
+        ({ params, currentBranch }) =>
+          service.resetAccess(params.id, currentBranch),
+        {
+          params: t.Object({
+            id: t.String({ error: "ID do usuário é obrigatório" }),
+          }),
+          response: {
+            200: t.Omit(UserPlain, ["password"]),
+          },
+          branchCheck: true,
+        },
+      ),
   )
   .post(
     "/:id/change-password",

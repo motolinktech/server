@@ -137,7 +137,7 @@ Summary of modules discovered:
 - Payment Requests
 - Planning
 
-Total endpoints documented: 67
+Total endpoints documented: 69
 
 (For each module we list method, path, auth, params/query/body, and response schema references with small examples.)
 
@@ -166,18 +166,114 @@ Total endpoints documented: 67
   - Response: Branch
 
 **Users** (`/api/users`)
+
 - POST `/api/users` — Auth: isAuth, branchCheck
+  - Description: Create a new user. If no password is provided, user is created with status `PENDING` and a verification token (24h) is generated. A WhatsApp invite is sent if the user has a phone (non-blocking).
   - Body: `UserMutateSchema` (without id)
-  - Response: User (omit password and some relations)
+    - `name` (string, minLength 3, maxLength 255) — required
+    - `email` (string, email format) — required
+    - `password` (string, minLength 8, maxLength 128, pattern) — optional; if omitted, status becomes `PENDING`
+    - `role` (string, union of valid roles) — required
+    - `branches` (array of UUID strings) — optional
+    - `permissions` (array of strings) — optional
+    - `birthDate` (Date) — optional
+    - `document` (string, nullable) — required
+    - `phone` (string, 10-11 chars) — optional
+    - `files` (array of `{ url, type, uploadedAt }`) — optional, default `[]`
+  - Response 200: `User` (omit `password`)
+  - Example body:
+    ```json
+    {
+      "name": "Maria Souza",
+      "email": "maria@example.com",
+      "role": "USER",
+      "document": "12345678900",
+      "phone": "11999990000",
+      "branches": ["01JHRZ5K8MBRNCH"]
+    }
+    ```
+
 - GET `/api/users` — Auth: isAuth, branchCheck
-  - Query: pagination/filter
-  - Response: `{ data: [...], count }` (user list shape defined in route)
-- GET `/api/users/:id` — Auth: isAuth, branchCheck
+  - Description: List users belonging to the current branch (non-deleted), with optional search and pagination.
+  - Query:
+    - `page` (number) — optional, default 1
+    - `limit` (number) — optional, default PAGE_SIZE (env) or 20
+    - `search` (string) — optional, case-insensitive match on `name` or `email`
+  - Response 200:
+    ```json
+    {
+      "data": [
+        {
+          "id": "01JHRZ5K8MUSRID",
+          "name": "Maria Souza",
+          "email": "maria@example.com",
+          "role": "USER",
+          "status": "ACTIVE",
+          "permissions": [],
+          "branches": ["01JHRZ5K8MBRNCH"],
+          "verificationTokens": []
+        }
+      ],
+      "count": 1
+    }
+    ```
+
 - GET `/api/users/me` — Auth: isAuth
-  - Response: current user (omit password)
+  - Description: Returns the currently authenticated user (omit password). The `files` field defaults to `[]` if absent.
+  - Response 200: `User` (omit `password`)
+
+- GET `/api/users/:id` — Auth: isAuth, branchCheck
+  - Description: Retrieve a single user by ID (omit `password`, `verificationTokens`, `historyTraces`).
+  - Params: `id` (string, UUID)
+  - Response 200: `UserDetailed` (omit `password`, `verificationTokens`, `historyTraces`)
+  - Errors: 404 `{ "message": "Usuário não encontrado." }`
+
+- PUT `/api/users/:id` — Auth: isAuth, branchCheck
+  - Description: Update a user. All body fields are optional. Password cannot be changed via this endpoint.
+  - Params: `id` (string, UUID)
+  - Body: partial `UserMutateSchema` (omit `id` and `password`)
+  - Response 200: `User` (omit `password`)
+  - Errors: 404 `{ "message": "Usuário não encontrado." }`
+
 - DELETE `/api/users/:id` — Auth: isAuth
-- POST `/api/users/:id/change-password` — Public/auth not required by guard (defined outside guard)
-  - Body: `UserPasswordChangeSchema`
+  - Description: Soft-delete a user (sets `isDeleted = true`). Logs deletion to HistoryTrace (non-blocking).
+  - Params: `id` (string, UUID)
+  - Response 200: Updated `User` object
+
+- POST `/api/users/:id/reset-access` — Auth: isAuth, branchCheck
+  - Description: Resets a user's access by clearing their password and setting status back to `PENDING`. Deletes all existing VerificationTokens for the user, sets `password = null` and `status = PENDING`, generates a new VerificationToken (24h expiry), and optionally sends a WhatsApp invite if the user has a phone (non-blocking). Logs the change to HistoryTrace (non-blocking).
+  - Params: `id` (string, UUID — userId)
+  - Body: none
+  - Response 200: `User` (omit `password`)
+  - Response 400: `{ "message": "Usuário já está pendente de configuração de senha." }` — if user status is already `PENDING`
+  - Response 404: `{ "message": "Usuário não encontrado." }` — if user does not exist
+  - Example response:
+    ```json
+    {
+      "id": "01JHRZ5K8MUSRID",
+      "name": "Maria Souza",
+      "email": "maria@example.com",
+      "role": "USER",
+      "status": "PENDING",
+      "permissions": [],
+      "branches": ["01JHRZ5K8MBRNCH"],
+      "isDeleted": false,
+      "createdAt": "2026-01-10T09:00:00.000Z",
+      "updatedAt": "2026-03-05T14:30:00.000Z"
+    }
+    ```
+
+- POST `/api/users/:id/change-password` — Public (no auth guard)
+  - Description: Set or update the user's password using a valid verification token. Validates token ownership, hashes the new password, sets status to `ACTIVE`, deletes all VerificationTokens for the user, and logs the change to HistoryTrace (non-blocking).
+  - Params: `id` (string, UUID — userId)
+  - Body: `UserPasswordChangeSchema` (omit `id`)
+    - `password` (string, minLength 8, maxLength 128, pattern) — required
+    - `passwordConfirmation` (string) — required; must match `password`
+    - `token` (string) — required; must be a valid VerificationToken for this user
+  - Response 200: `User` (omit `password`)
+  - Errors:
+    - 400 `{ "message": "As senhas não coincidem." }`
+    - 401 `{ "message": "Acesso não autorizado." }` — if token is invalid or does not belong to this user
 
 **Events** (`/api/events`) — guarded with `isAuth` and `branchCheck`
 - POST `/api/events` — Body: `EventMutateSchema` (route signs createdBy using `user.id`)
