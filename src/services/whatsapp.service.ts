@@ -88,9 +88,12 @@ export function whatsappService() {
         return false;
       }
 
+      console.log(
+        `✅ [whatsappService] Message successfully sent to: ${phoneWithPrefix} at ${new Date().toISOString()}`,
+      );
       return true;
     } catch (error) {
-      console.error("[whatsappService] Error sending message:", error);
+      console.error("❌ [whatsappService] Error sending message:", error);
       return false;
     }
   };
