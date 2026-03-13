@@ -1,6 +1,8 @@
 import type { Prisma } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
+import { historyTraceActionsEnum } from "../../shared/enums/historyTraceAction.enum";
 import { AppError } from "../../utils/appError";
+import { historyTraceService } from "../historyTraces/historyTraces.service";
 import type {
   DeliverymenMutateDTO,
   ListDeliverymenDTO,
@@ -10,15 +12,25 @@ const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
 
 export function deliverymenService() {
   return {
-    async create(data: Omit<DeliverymenMutateDTO, "id">) {
+    async create(data: Omit<DeliverymenMutateDTO, "id">, userId: string) {
       const deliveryman = await db.deliveryman.create({
         data,
+      });
+
+      void historyTraceService().create({
+        new: {
+          ...(deliveryman as unknown as Record<string, unknown>),
+          entityType: "DELIVERYMAN",
+        },
+        old: null,
+        userId,
+        action: historyTraceActionsEnum.CREATE,
       });
 
       return deliveryman;
     },
 
-    async edit(data: Partial<DeliverymenMutateDTO>) {
+    async edit(data: Partial<DeliverymenMutateDTO>, userId: string) {
       const existingDeliveryman = await db.deliveryman.findUnique({
         where: { id: data.id },
       });
@@ -34,6 +46,19 @@ export function deliverymenService() {
       const updatedDeliveryman = await db.deliveryman.update({
         where: { id: data.id },
         data,
+      });
+
+      void historyTraceService().create({
+        new: {
+          ...(updatedDeliveryman as unknown as Record<string, unknown>),
+          entityType: "DELIVERYMAN",
+        },
+        old: {
+          ...(existingDeliveryman as Record<string, unknown>),
+          entityType: "DELIVERYMAN",
+        },
+        userId,
+        action: historyTraceActionsEnum.EDIT,
       });
 
       return updatedDeliveryman;

@@ -29,8 +29,8 @@ export const deliverymenRoutes = new Elysia({
     app
       .post(
         "/",
-        ({ body, currentBranch }) =>
-          service.create({ ...body, branchId: currentBranch }),
+        ({ body, currentBranch, user }) =>
+          service.create({ ...body, branchId: currentBranch }, user.id),
         {
           body: t.Omit(DeliverymenMutateSchema, [
             "id",
@@ -85,7 +85,8 @@ export const deliverymenRoutes = new Elysia({
       })
       .put(
         "/:id",
-        ({ params, body }) => service.edit({ ...body, id: params.id }),
+        ({ params, body, user }) =>
+          service.edit({ ...body, id: params.id }, user.id),
         {
           body: t.Omit(DeliverymenMutateSchema, ["id", "branchId"]),
           response: {
