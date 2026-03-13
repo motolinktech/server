@@ -64,7 +64,7 @@ export function deliverymenService() {
       return updatedDeliveryman;
     },
 
-    async delete(id: string) {
+    async delete(id: string, userId: string) {
       const existingDeliveryman = await db.deliveryman.findUnique({
         where: { id },
       });
@@ -80,6 +80,19 @@ export function deliverymenService() {
       const deletedDeliveryman = await db.deliveryman.update({
         where: { id },
         data: { isDeleted: true },
+      });
+
+      void historyTraceService().create({
+        new: {
+          ...(deletedDeliveryman as unknown as Record<string, unknown>),
+          entityType: "DELIVERYMAN",
+        },
+        old: {
+          ...(existingDeliveryman as Record<string, unknown>),
+          entityType: "DELIVERYMAN",
+        },
+        userId,
+        action: historyTraceActionsEnum.DELETE,
       });
 
       return deletedDeliveryman;

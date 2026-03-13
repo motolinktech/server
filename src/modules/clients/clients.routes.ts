@@ -34,11 +34,14 @@ export const clientsRoutes = new Elysia({
     app
       .post(
         "/",
-        ({ body, currentBranch }) =>
-          service.create({
-            client: { ...body.client, branchId: currentBranch },
-            commercialCondition: body.commercialCondition,
-          }),
+        ({ body, currentBranch, user }) =>
+          service.create(
+            {
+              client: { ...body.client, branchId: currentBranch },
+              commercialCondition: body.commercialCondition,
+            },
+            user.id,
+          ),
         {
           body: t.Object({
             client: t.Omit(ClientMutateSchema, ["id", "branchId"]),
@@ -158,7 +161,8 @@ export const clientsRoutes = new Elysia({
       })
       .put(
         "/:clientId",
-        ({ params, body }) => service.edit(params.clientId, body),
+        ({ params, body, user }) =>
+          service.edit(params.clientId, body, user.id),
         {
           body: t.Object({
             client: t.Optional(t.Omit(ClientMutateSchema, ["id", "branchId"])),
@@ -176,10 +180,14 @@ export const clientsRoutes = new Elysia({
           },
         },
       )
-      .delete("/:clientId", ({ params }) => service.delete(params.clientId), {
-        response: {
-          200: ClientResponse,
+      .delete(
+        "/:clientId",
+        ({ params, user }) => service.delete(params.clientId, user.id),
+        {
+          response: {
+            200: ClientResponse,
+          },
         },
-      }),
+      ),
   )
   .use(blocksRoutes);

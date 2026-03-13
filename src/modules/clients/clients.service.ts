@@ -3,7 +3,9 @@ import {
   Prisma,
 } from "../../../generated/prisma/client";
 import { db } from "../../services/database.service";
+import { historyTraceActionsEnum } from "../../shared/enums/historyTraceAction.enum";
 import { AppError } from "../../utils/appError";
+import { historyTraceService } from "../historyTraces/historyTraces.service";
 import type {
   ClientMutateDTO,
   ClientWithCommercialConditionDTO,
@@ -73,9 +75,26 @@ function parseCommercialConditionInput(input: CommercialConditionDTO) {
   };
 }
 
+type ClientTraceSnapshot = {
+  commercialCondition: ReturnType<
+    typeof formatCommercialConditionResponse
+  > | null;
+} & Record<string, unknown>;
+
+const buildClientTraceSnapshot = (
+  client: {
+    commercialCondition?: CommercialCondition | null;
+  } & Record<string, unknown>,
+): ClientTraceSnapshot => ({
+  ...client,
+  commercialCondition: client.commercialCondition
+    ? formatCommercialConditionResponse(client.commercialCondition)
+    : null,
+});
+
 export function clientsService() {
   return {
-    async create(data: ClientWithCommercialConditionDTO) {
+    async create(data: ClientWithCommercialConditionDTO, userId: string) {
       const { client, commercialCondition } = data;
 
       const result = await db.client.create({
@@ -95,7 +114,26 @@ export function clientsService() {
         });
       }
 
-      return result;
+      const createdClient = await db.client.findUnique({
+        where: { id: result.id },
+        include: { commercialCondition: true },
+      });
+
+      if (!createdClient) {
+        throw new AppError("Cliente não encontrado.", 404);
+      }
+
+      void historyTraceService().create({
+        new: {
+          ...buildClientTraceSnapshot(createdClient),
+          entityType: "CLIENT",
+        },
+        old: null,
+        userId,
+        action: historyTraceActionsEnum.CREATE,
+      });
+
+      return createdClient;
     },
 
     async edit(
@@ -104,6 +142,7 @@ export function clientsService() {
         client?: Partial<ClientMutateDTO>;
         commercialCondition?: Partial<CommercialConditionDTO>;
       },
+      userId: string,
     ) {
       const existingClient = await db.client.findUnique({
         where: { id },
@@ -135,6 +174,19 @@ export function clientsService() {
         include: { commercialCondition: true },
       });
 
+      void historyTraceService().create({
+        new: {
+          ...buildClientTraceSnapshot(result),
+          entityType: "CLIENT",
+        },
+        old: {
+          ...buildClientTraceSnapshot(existingClient),
+          entityType: "CLIENT",
+        },
+        userId,
+        action: historyTraceActionsEnum.EDIT,
+      });
+
       return {
         ...result,
         commercialCondition: result.commercialCondition
@@ -143,9 +195,10 @@ export function clientsService() {
       };
     },
 
-    async delete(id: string) {
+    async delete(id: string, userId: string) {
       const existingClient = await db.client.findUnique({
         where: { id },
+        include: { commercialCondition: true },
       });
 
       if (!existingClient) {
@@ -159,6 +212,20 @@ export function clientsService() {
       const deletedClient = await db.client.update({
         where: { id },
         data: { isDeleted: true },
+        include: { commercialCondition: true },
+      });
+
+      void historyTraceService().create({
+        new: {
+          ...buildClientTraceSnapshot(deletedClient),
+          entityType: "CLIENT",
+        },
+        old: {
+          ...buildClientTraceSnapshot(existingClient),
+          entityType: "CLIENT",
+        },
+        userId,
+        action: historyTraceActionsEnum.DELETE,
       });
 
       return deletedClient;

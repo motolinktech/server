@@ -103,9 +103,13 @@ export const deliverymenRoutes = new Elysia({
           },
         },
       )
-      .delete("/:id", ({ params }) => service.delete(params.id), {
-        response: {
-          200: DeliverymanReponse,
+      .delete(
+        "/:id",
+        ({ params, user }) => service.delete(params.id, user.id),
+        {
+          response: {
+            200: DeliverymanReponse,
+          },
         },
-      }),
+      ),
   );
